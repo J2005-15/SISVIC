@@ -1,0 +1,19 @@
+$kind: http-example
+name: 'Éxito (200 OK)'
+order: 1000
+request:
+  url: '{{base_url}}/api/auth/recover-password'
+  method: POST
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "Se ha enviado una nueva contraseña a tu email. Por favor revisa tu correo.",
+        "note": "En desarrollo, la contraseña también aparece en los logs de consola"
+      }

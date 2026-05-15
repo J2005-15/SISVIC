@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Sector'
+method: DELETE
+url: '{{base_url}}/api/sectors/1'
+order: 5000

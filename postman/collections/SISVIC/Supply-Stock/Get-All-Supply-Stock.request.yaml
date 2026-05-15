@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get All Supply Stock'
+method: GET
+url: '{{base_url}}/api/supply-stock'
+order: 1000

@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'Update Medical Record'
+method: PUT
+url: '{{base_url}}/api/medical-records/1'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "consultation_reason": "Control de rutina y vacunación anual - actualizado",
+      "diagnosis": "Animal en buen estado de salud",
+      "treatment": "Aplicación de vacuna antirrábica y desparasitante",
+      "id_animal": 1,
+      "id_vet_user": 1,
+      "id_day": 1,
+      "weight_kg": 9.0,
+      "temperature": 38.2
+    }

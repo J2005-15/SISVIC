@@ -129,10 +129,64 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+// Obtener perfil del usuario autenticado
+const getProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id; // Obtenido del token JWT 
+    
+    const user = await Users.findByPk(userId, {
+      attributes: ['id_user', 'email', 'full_name'], // Traemos datos solicitados
+      include: [{
+        model: Roles,
+        attributes: ['id_role', 'role_name']
+      }]
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Actualizar perfil del usuario autenticado
+const updateProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { full_name, email } = req.body;
+
+    const user = await Users.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Si envía un correo, verificar que no le pertenezca a otra persona
+    if (email && email !== user.email) {
+      const existingUser = await Users.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ message: 'El email ya está registrado' });
+      }
+    }
+
+    await user.update({ full_name, email });
+
+    res.json({
+      message: 'Perfil actualizado exitosamente',
+      user: { id_user: user.id_user, full_name: user.full_name, email: user.email }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getUsers,
   getUser,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  getProfile,
+  updateProfile
 };

@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Update Staff Volunteer'
+method: PUT
+url: '{{base_url}}/api/staff-volunteers/1'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "first_name": "Carlos",
+      "last_name": "Rodríguez Medina",
+      "dni_number": "87654321",
+      "phone": "0424-1234567",
+      "staff_type": "Veterinario"
+    }

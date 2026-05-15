@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Used Supply'
+method: DELETE
+url: '{{base_url}}/api/used-supplies/1'
+order: 5000

@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Update Sector'
+method: PUT
+url: '{{base_url}}/api/sectors/1'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "community_name": "Comunidad El Paraíso Actualizada",
+      "parish": "Parroquia San José",
+      "municipality": "Municipio Libertador"
+    }

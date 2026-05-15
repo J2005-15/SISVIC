@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get Medical Record by ID'
+method: GET
+url: '{{base_url}}/api/medical-records/1'
+order: 2000

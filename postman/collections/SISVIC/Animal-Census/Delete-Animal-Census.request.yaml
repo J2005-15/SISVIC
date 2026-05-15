@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Animal Census'
+method: DELETE
+url: '{{base_url}}/api/animal-census/1'
+order: 5000

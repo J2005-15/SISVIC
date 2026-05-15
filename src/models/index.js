@@ -34,7 +34,7 @@ Owners.belongsTo(Sectors, { foreignKey: 'id_sector' });
 Sectors.hasMany(Owners, { foreignKey: 'id_sector' });
 
 // Users pertenece a Roles
-Users.belongsTo(Roles, { foreignKey: 'id_role' });
+Users.belongsTo(Roles, { foreignKey: 'id_role', as: 'Role' });
 Roles.hasMany(Users, { foreignKey: 'id_role' });
 
 // Animal_Census pertenece a Owners y Sectors
@@ -80,7 +80,7 @@ Supply_Stock.hasMany(Used_Supplies, { foreignKey: 'id_supply' });
 // Función para sincronizar la base de datos
 const syncDatabase = async () => {
   try {
-    await sequelize.sync(); // Sin alter para no modificar tablas existentes
+    await sequelize.sync();
     console.log('Base de datos sincronizada correctamente.');
   } catch (error) {
     console.error('Error al sincronizar la base de datos:', error);

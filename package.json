@@ -5,7 +5,14 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "db:local": "node switch-db.js local",
+    "db:remote": "node switch-db.js remote",
+    "dev:local": "npm run db:local && npm run dev",
+    "dev:remote": "npm run db:remote && npm run dev",
+    "test": "jest --detectOpenHandles",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [],
   "author": "",
@@ -20,10 +27,16 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
+    "nodemailer": "^8.0.7",
     "pg": "^8.20.0",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "jest": "^30.4.2",
+    "joi": "^18.2.1",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }

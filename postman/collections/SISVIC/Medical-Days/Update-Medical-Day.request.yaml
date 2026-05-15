@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'Update Medical Day'
+method: PUT
+url: '{{base_url}}/api/medical-days/1'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "day_name": "Jornada Veterinaria Norte Actualizada",
+      "id_sector": 1,
+      "date_event": "2026-06-20",
+      "description": "Jornada de vacunación y desparasitación en el sector norte - actualizada"
+    }

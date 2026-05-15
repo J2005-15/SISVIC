@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'Create Medical Record'
+method: POST
+url: '{{base_url}}/api/medical-records'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "consultation_reason": "Control de rutina y vacunación anual",
+      "diagnosis": "Animal en buen estado de salud",
+      "treatment": "Aplicación de vacuna antirrábica y desparasitante",
+      "id_animal": 1,
+      "id_vet_user": 1,
+      "id_day": 1,
+      "weight_kg": 8.5,
+      "temperature": 38.5
+    }

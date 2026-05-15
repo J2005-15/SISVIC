@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get All Day Attendance'
+method: GET
+url: '{{base_url}}/api/day-attendance'
+order: 1000

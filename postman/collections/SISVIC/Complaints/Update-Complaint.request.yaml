@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Update Complaint'
+method: PUT
+url: '{{base_url}}/api/complaints/1'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id_animal": 1,
+      "id_sector": 1,
+      "description": "Animal callejero en mal estado de salud - en proceso de atención",
+      "priority": "Alta",
+      "status": "En_Investigación"
+    }

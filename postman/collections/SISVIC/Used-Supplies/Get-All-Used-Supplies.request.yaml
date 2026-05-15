@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get All Used Supplies'
+method: GET
+url: '{{base_url}}/api/used-supplies'
+order: 1000

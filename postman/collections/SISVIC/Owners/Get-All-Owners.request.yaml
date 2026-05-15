@@ -1,0 +1,20 @@
+$kind: http-request
+name: Get All Owners
+method: POST
+url: "{{base_url}}/api/owners"
+body:
+  type: json
+  content: "{\r
+
+    \  \"full_name\": \"Carlos Mendoza\",\r
+
+    \  \"id_card\": \"V-12345678\",\r
+
+    \  \"phone_number\": \"0414-1234567\",\r
+
+    \  \"address\": \"Barrio Sucre\",\r
+
+    \  \"id_sector\": 1\r
+
+    }"
+order: 1000

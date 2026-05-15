@@ -1,0 +1,25 @@
+$kind: http-request
+name: Login
+method: POST
+url: '{{base_url}}/api/auth/login'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "admin@sisvic.com",
+      "password": "password123"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const response = pm.response.json();
+      if (response.token) {
+        pm.environment.set("token", response.token);
+        console.log("Token guardado:", response.token);
+      }
+examples: './.resources/Login.resources/examples'

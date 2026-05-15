@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get All Staff Volunteers'
+method: GET
+url: '{{base_url}}/api/staff-volunteers'
+order: 1000

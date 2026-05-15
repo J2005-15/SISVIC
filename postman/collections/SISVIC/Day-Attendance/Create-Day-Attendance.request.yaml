@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create Day Attendance'
+method: POST
+url: '{{base_url}}/api/day-attendance'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id_day": 1,
+      "id_owner": 1,
+      "id_staff": 1,
+      "id_animal": 1,
+      "arrival_time": "2026-06-15T09:00:00.000Z"
+    }

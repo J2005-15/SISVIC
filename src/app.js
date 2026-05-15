@@ -4,6 +4,10 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const { sequelize } = require('./config/database');
 
+// Importar Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
+
 // Importar middlewares
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -21,6 +25,9 @@ app.use(morgan('combined'));
 // Middlewares para parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Ruta para acceder a la documentación de Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Rutas
 app.use('/api', require('./routes/index'));

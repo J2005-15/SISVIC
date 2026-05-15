@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Create Sector'
+method: POST
+url: '{{base_url}}/api/sectors'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "community_name": "Comunidad El Paraíso",
+      "parish": "Parroquia San José",
+      "municipality": "Municipio Libertador"
+    }

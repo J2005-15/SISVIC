@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get All Animal Census'
+method: GET
+url: '{{base_url}}/api/animal-census'
+order: 1000

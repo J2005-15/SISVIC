@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Complaint'
+method: DELETE
+url: '{{base_url}}/api/complaints/1'
+order: 5000

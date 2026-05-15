@@ -1,0 +1,18 @@
+$kind: http-example
+name: 'Error - No encontrado (404 Not Found)'
+order: 2000
+request:
+  url: '{{base_url}}/api/auth/recover-password'
+  method: POST
+response:
+  statusCode: 404
+  statusText: 'Not Found'
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "No existe una cuenta asociada a este email"
+      }

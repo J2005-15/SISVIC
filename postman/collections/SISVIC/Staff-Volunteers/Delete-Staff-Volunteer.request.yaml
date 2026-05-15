@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Staff Volunteer'
+method: DELETE
+url: '{{base_url}}/api/staff-volunteers/1'
+order: 5000

@@ -1,0 +1,17 @@
+$kind: http-request
+name: Register
+method: POST
+url: "{{base_url}}/api/auth/register"
+order: 2000
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "Julieth Andrade",
+      "email": "julieth20051506@gmail.com",
+      "password": "admin1234",
+      "id_role": 1,
+      "status": true
+    }

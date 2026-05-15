@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create Complaint'
+method: POST
+url: '{{base_url}}/api/complaints'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id_animal": 1,
+      "id_sector": 1,
+      "description": "Animal callejero en mal estado de salud reportado por vecinos",
+      "priority": "Alta",
+      "status": "Recibida"
+    }

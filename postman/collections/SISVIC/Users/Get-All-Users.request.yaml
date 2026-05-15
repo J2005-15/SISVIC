@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get All Users
+method: GET
+url: "{{base_url}}/api/users"
+auth:
+  type: inherit
+  credentials:
+    id: collection-13D9BA3e096D4169D6e6e399-bearer
+order: 1000

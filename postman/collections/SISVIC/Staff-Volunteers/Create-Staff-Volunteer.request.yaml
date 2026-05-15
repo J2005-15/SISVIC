@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create Staff Volunteer'
+method: POST
+url: '{{base_url}}/api/staff-volunteers'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "first_name": "Carlos",
+      "last_name": "Rodríguez",
+      "dni_number": "87654321",
+      "phone": "0424-9876543",
+      "staff_type": "Veterinario"
+    }

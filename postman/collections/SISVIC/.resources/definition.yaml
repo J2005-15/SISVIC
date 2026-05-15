@@ -1,0 +1,11 @@
+$kind: collection
+name: 'SISVIC - Sistema de Gestión Veterinaria'
+description: 'Colección completa de endpoints REST para el Sistema de Gestión Veterinaria SISVIC. Base URL: http://localhost:3000/api'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+variables:
+  - key: base_url
+    value: 'http://localhost:3000'

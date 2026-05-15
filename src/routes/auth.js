@@ -3,9 +3,22 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
+const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 const { Users, Roles } = require('../models');
+const emailService = require('../services/emailService');
+const { env } = require('../config/env');
 
 const router = express.Router();
+
+// Función para generar contraseña aleatoria
+const generateRandomPassword = (length = 8) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
 
 // Validación para login
 const validateLogin = [
@@ -33,6 +46,14 @@ const validateRegister = [
   body('id_role')
     .isInt()
     .withMessage('El rol es requerido'),
+  handleValidationErrors
+];
+
+// Validación para recuperar contraseña
+const validateRecoverPassword = [
+  body('email')
+    .isEmail()
+    .withMessage('Email inválido'),
   handleValidationErrors
 ];
 
@@ -69,7 +90,7 @@ router.post('/login', validateLogin, async (req, res) => {
         email: user.email,
         role: user.Role.role_name
       },
-      process.env.JWT_SECRET,
+      env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -129,6 +150,48 @@ router.post('/register', validateRegister, async (req, res) => {
     });
   } catch (error) {
     console.error('Error en registro:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Recuperar contraseña
+router.post('/recover-password', validateRecoverPassword, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Buscar usuario por email
+    const user = await Users.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'No existe una cuenta asociada a este email'
+      });
+    }
+
+    // Generar nueva contraseña aleatoria
+    const newPassword = generateRandomPassword();
+
+    // Hashear la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Actualizar contraseña en la BD
+    await user.update({ password: hashedPassword });
+
+    // Enviar email con la nueva contraseña
+    const emailSent = await emailService.sendPasswordResetEmail(email, newPassword);
+
+    if (!emailSent) {
+      return res.status(500).json({
+        message: 'Error al enviar el email. Por favor intenta más tarde.'
+      });
+    }
+
+    res.json({
+      message: 'Se ha enviado una nueva contraseña a tu email. Por favor revisa tu correo.',
+      note: 'En desarrollo, la contraseña también aparece en los logs de consola'
+    });
+  } catch (error) {
+    console.error('Error en recuperación de contraseña:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });

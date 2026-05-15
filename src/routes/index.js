@@ -29,5 +29,5 @@ router.use('/day-attendance', dayAttendanceRoutes);
 router.use('/staff-volunteers', staffVolunteersRoutes);
 router.use('/supply-stock', supplyStockRoutes);
 router.use('/used-supplies', usedSuppliesRoutes);
-
+router.use('/', require('./profile'));
 module.exports = router;

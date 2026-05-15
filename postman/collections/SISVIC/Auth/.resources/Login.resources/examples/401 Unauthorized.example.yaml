@@ -1,0 +1,18 @@
+$kind: http-example
+name: 'Error - No autorizado (401 Unauthorized)'
+order: 2000
+request:
+  url: '{{base_url}}/api/auth/login'
+  method: POST
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "message": "Credenciales inválidas"
+      }
