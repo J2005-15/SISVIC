@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get Owner by ID'
+method: GET
+url: '{{base_url}}/api/owners/1'
+order: 2000

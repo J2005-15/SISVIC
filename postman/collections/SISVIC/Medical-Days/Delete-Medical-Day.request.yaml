@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Medical Day'
+method: DELETE
+url: '{{base_url}}/api/medical-days/1'
+order: 5000

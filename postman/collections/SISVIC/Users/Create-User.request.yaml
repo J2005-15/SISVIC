@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create User'
+method: POST
+url: '{{base_url}}/api/users'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "Juan Pérez",
+      "email": "juan.perez@sisvic.com",
+      "password": "password123",
+      "id_role": 1,
+      "status": "activo"
+    }

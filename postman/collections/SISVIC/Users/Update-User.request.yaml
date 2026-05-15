@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Update User'
+method: PUT
+url: '{{base_url}}/api/users/1'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "Juan Pérez Actualizado",
+      "email": "juan.perez@sisvic.com",
+      "password": "newpassword123",
+      "id_role": 1,
+      "status": "activo"
+    }

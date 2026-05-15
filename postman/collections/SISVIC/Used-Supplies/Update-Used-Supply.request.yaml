@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Update Used Supply'
+method: PUT
+url: '{{base_url}}/api/used-supplies/1'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id_record": 1,
+      "id_supply": 1,
+      "used_quantity": 3
+    }

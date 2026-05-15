@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create Animal Census'
+method: POST
+url: '{{base_url}}/api/animal-census'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "species": "Canino",
+      "gender": "M",
+      "color": "Negro",
+      "id_owner": 1,
+      "id_sector": 1
+    }

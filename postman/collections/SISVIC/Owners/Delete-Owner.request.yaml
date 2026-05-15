@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Owner'
+method: DELETE
+url: '{{base_url}}/api/owners/1'
+order: 5000

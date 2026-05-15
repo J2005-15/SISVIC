@@ -1,0 +1,17 @@
+$kind: http-request
+name: Register
+method: POST
+url: '{{base_url}}/api/auth/register'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "Nuevo Usuario",
+      "email": "usuario@sisvic.com",
+      "password": "password123",
+      "id_role": 1
+    }

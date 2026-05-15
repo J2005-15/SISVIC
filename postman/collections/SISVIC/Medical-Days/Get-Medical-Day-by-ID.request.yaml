@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get Medical Day by ID'
+method: GET
+url: '{{base_url}}/api/medical-days/1'
+order: 2000

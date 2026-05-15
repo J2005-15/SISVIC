@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Medical Record'
+method: DELETE
+url: '{{base_url}}/api/medical-records/1'
+order: 5000

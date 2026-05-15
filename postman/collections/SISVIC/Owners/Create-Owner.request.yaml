@@ -1,0 +1,18 @@
+$kind: http-request
+name: 'Create Owner'
+method: POST
+url: '{{base_url}}/api/owners'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "full_name": "María García",
+      "id_card": "12345678",
+      "phone_number": "0412-1234567",
+      "address": "Calle 5, Casa 10, Sector Norte",
+      "id_sector": 1
+    }

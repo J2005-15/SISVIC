@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Day Attendance'
+method: DELETE
+url: '{{base_url}}/api/day-attendance/1'
+order: 5000
