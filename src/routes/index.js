@@ -12,10 +12,13 @@ const dayAttendanceRoutes = require('./dayAttendance');
 const medicalDayRoutes = require('./medicalDay');
 const staffVolunteersRoutes = require('./staffVolunteers');
 const usedSuppliesRoutes = require('./usedSupplies');
+const publicRoutes = require('./public'); // Importar rutas públicas
 
 const router = express.Router();
 
 // Montar rutas
+router.use('/public', publicRoutes); // Rutas públicas accesibles sin login (/api/public/...)
+
 router.use('/auth', authRoutes);
 router.use('/roles', rolesRoutes);
 router.use('/sectors', sectorsRoutes);

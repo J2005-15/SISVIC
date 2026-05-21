@@ -58,6 +58,136 @@ class EmailService {
       return false;
     }
   }
+
+  async sendPasswordResetLink(email, resetUrl) {
+    const mailOptions = {
+      from: env.EMAIL_FROM,
+      to: email,
+      subject: '🔐 Recuperar Contraseña — Sistema SISVIC',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+          <h2 style="color:#765A05;">Sistema SISVIC — Misión Nevado</h2>
+          <p>Has solicitado restablecer tu contraseña de acceso.</p>
+          <p>Haz clic en el botón para crear una nueva contraseña:</p>
+          <div style="text-align:center;margin:28px 0;">
+            <a href="${resetUrl}"
+               style="background-color:#765A05;color:white;padding:14px 32px;
+                      border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px;">
+              Restablecer Contraseña
+            </a>
+          </div>
+          <p style="font-size:12px;color:#999;">
+            Si no solicitaste este cambio, ignora este mensaje.<br>
+            Este enlace solo puede usarse una vez.
+          </p>
+        </div>
+      `
+    };
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Enlace de recuperación enviado a ${email}`);
+      return true;
+    } catch (error) {
+      console.error('Error al enviar enlace de recuperación:', error);
+      return false;
+    }
+  }
+
+  async sendAdminAlert(adminEmail, tipo, detalles) {
+    const esAdopcion = tipo === 'adopcion';
+    const mailOptions = {
+      from: env.EMAIL_FROM,
+      to: adminEmail,
+      subject: `🔔 Nueva ${esAdopcion ? 'solicitud de adopción' : 'donación'} — SISVIC`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #765A05;">Sistema SISVIC — Misión Nevado</h2>
+          <p>Hola Administrador,</p>
+          <p>Hay una nueva <strong>${esAdopcion ? 'solicitud de adopción' : 'donación'}</strong>
+             registrada en el sistema esperando tu revisión.</p>
+          <div style="background:#FFEFD1;border-left:4px solid #765A05;padding:12px 16px;border-radius:8px;margin:16px 0;">
+            ${detalles}
+          </div>
+          <p>Ingresa al panel de administración para procesarla.</p>
+          <p style="font-size:11px;color:#999;">Mensaje automático — Sistema SISVIC</p>
+        </div>
+      `
+    };
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Alerta de ${tipo} enviada al administrador`);
+      return true;
+    } catch (error) {
+      console.error('Error al enviar alerta admin:', error);
+      return false;
+    }
+  }
+
+  async sendInventoryAlertEmail(email, adminName, lowStockProducts, expiringProducts) {
+    const lowStockHTML = lowStockProducts.map(product => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${product.material_name || 'N/A'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${product.current_quantity}</td>
+      </tr>
+    `).join('');
+
+    const expiringHTML = expiringProducts.map(product => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${product.material_name || 'N/A'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${new Date(product.expiration_date).toLocaleDateString()}</td>
+      </tr>
+    `).join('');
+
+    const mailOptions = {
+      from: env.EMAIL_FROM,
+      to: email,
+      subject: '⚠️ Alerta de Inventario - Sistema SISVIC',
+      html: `
+        <h2>Alertas de Inventario - SISVIC</h2>
+        <p>Hola ${adminName},</p>
+        <p>Se han detectado los siguientes problemas en el inventario:</p>
+
+        ${lowStockProducts.length > 0 ? `
+          <h3>📦 Productos con Stock Bajo (&lt; 20 unidades)</h3>
+          <table style="border-collapse: collapse; width: 100%;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Producto</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>${lowStockHTML}</tbody>
+          </table>
+        ` : ''}
+
+        ${expiringProducts.length > 0 ? `
+          <h3>⏰ Productos Próximos a Vencer (&lt; 30 días)</h3>
+          <table style="border-collapse: collapse; width: 100%;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Producto</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Fecha Vencimiento</th>
+              </tr>
+            </thead>
+            <tbody>${expiringHTML}</tbody>
+          </table>
+        ` : ''}
+
+        <p style="margin-top: 20px; font-size: 12px; color: #666;">
+          Este es un mensaje automático. Por favor no respondas.
+        </p>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Alerta de inventario enviada a ${email}`);
+      return true;
+    } catch (error) {
+      console.error('Error al enviar alerta de inventario:', error);
+      return false;
+    }
+  }
 }
 
 module.exports = new EmailService();

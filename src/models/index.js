@@ -11,6 +11,10 @@ const Day_Attendance = require('./Day_Attendance');
 const Medical_Records = require('./Medical_Records');
 const Supply_Stock = require('./Supply_Stock');
 const Used_Supplies = require('./Used_Supplies');
+const Pets = require('./Pets');
+const Adoption = require('./Adoption');
+const Donations = require('./Donations');
+
 
 // Objeto para almacenar todos los modelos
 const models = {
@@ -25,7 +29,10 @@ const models = {
   Day_Attendance,
   Medical_Records,
   Supply_Stock,
-  Used_Supplies
+  Used_Supplies,
+  Pets,
+  Adoption,
+  Donations
 };
 
 // Definir relaciones
@@ -77,16 +84,28 @@ Medical_Records.hasMany(Used_Supplies, { foreignKey: 'id_record' });
 Used_Supplies.belongsTo(Supply_Stock, { foreignKey: 'id_supply' });
 Supply_Stock.hasMany(Used_Supplies, { foreignKey: 'id_supply' });
 
+// Definir la relación: Un animal puede tener muchas solicitudes de adopción
+Pets.hasMany(Adoption, { foreignKey: 'id_pet', as: 'applications' });
+Adoption.belongsTo(Pets, { foreignKey: 'id_pet', as: 'pet' });
+
 // Función para sincronizar la base de datos
-const syncDatabase = async () => {
+const syncDatabase = async (options = {}) => {
   try {
-    await sequelize.sync();
+    await sequelize.sync(options);
     console.log('Base de datos sincronizada correctamente.');
   } catch (error) {
     console.error('Error al sincronizar la base de datos:', error);
   }
 };
 
+sequelize.sync({ force: false }) // 'force: false' para que no borre nada si ya existen
+  .then(() => {
+    console.log("Tablas sincronizadas correctamente.");
+  })
+  .catch((err) => {
+    console.error("Error al sincronizar tablas:", err);
+  });
+  
 module.exports = {
   ...models,
   syncDatabase

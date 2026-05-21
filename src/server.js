@@ -1,6 +1,7 @@
 const { validateEnv } = require('./config/env');
 const { testConnection } = require('./config/database');
 const { syncDatabase } = require('./models');
+const { scheduleInventoryAlert } = require('./services/scheduledTasks');
 const app = require('./app');
 
 // Validar variables de entorno
@@ -14,8 +15,12 @@ validateEnv();
     process.exit(1);
   }
 
-  // Sincronizar modelos con la base de datos
-  await syncDatabase();
+  // Sincronizar modelos con la base de datos (alter: true para no borrar data)
+  await syncDatabase({ alter: true });
+  console.log('¡Tablas de la web pública creadas y actualizadas en Neon perfectamente!');
+
+  // Inicializar tareas programadas
+  scheduleInventoryAlert();
 
   // Puerto
   const PORT = process.env.PORT || 3000;

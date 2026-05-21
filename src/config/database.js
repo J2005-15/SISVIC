@@ -23,18 +23,17 @@ if (env.DB_ENV === 'local') {
   sequelize = new Sequelize(env.DB_URI_REMOTE, {
     dialect: 'postgres',
     pool: {
-      max: 5,
+      max: 3,
       min: 0,
-      acquire: 30000,
-      idle: 10000
+      acquire: 60000,
+      idle: 30000
     },
     logging: env.NODE_ENV === 'development' ? console.log : false,
     dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false // Para Neon, puede ser necesario
-      }
-    }
+      ssl: true,
+      statement_timeout: 60000
+    },
+    connectTimeoutMs: 60000
   });
 } else {
   throw new Error('Configuración de base de datos inválida. DB_ENV debe ser "local" o "remote".');
