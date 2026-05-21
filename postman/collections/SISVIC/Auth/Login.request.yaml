@@ -22,4 +22,7 @@ scripts:
         pm.environment.set("token", response.token);
         console.log("Token guardado:", response.token);
       }
+<<<<<<< HEAD
 examples: './.resources/Login.resources/examples'
+=======
+>>>>>>> 6858456e45bcc8e44c984f7c84c28cc2e1b7fca2
