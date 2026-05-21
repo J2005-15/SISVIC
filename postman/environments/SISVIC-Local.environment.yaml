@@ -8,7 +8,10 @@ values:
     value: ''
     enabled: true
     type: default
+<<<<<<< HEAD
   - key: EMAIL_TEST
     value: 'usuario@example.com'
     enabled: true
     type: default
+=======
+>>>>>>> 6858456e45bcc8e44c984f7c84c28cc2e1b7fca2

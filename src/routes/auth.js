@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
@@ -15,7 +16,8 @@ const generateRandomPassword = (length = 8) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
   let password = '';
   for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
+    const randomIndex = crypto.randomInt(0, chars.length);
+    password += chars.charAt(randomIndex);
   }
   return password;
 };

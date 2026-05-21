@@ -1,4 +1,5 @@
 $kind: http-request
+<<<<<<< HEAD
 name: Get All Users
 method: GET
 url: "{{base_url}}/api/users"
@@ -6,4 +7,9 @@ auth:
   type: inherit
   credentials:
     id: collection-13D9BA3e096D4169D6e6e399-bearer
+=======
+name: 'Get All Users'
+method: GET
+url: '{{base_url}}/api/users'
+>>>>>>> 6858456e45bcc8e44c984f7c84c28cc2e1b7fca2
 order: 1000

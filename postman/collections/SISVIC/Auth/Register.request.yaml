@@ -1,17 +1,32 @@
 $kind: http-request
 name: Register
 method: POST
+<<<<<<< HEAD
 url: "{{base_url}}/api/auth/register"
 order: 2000
 headers:
   Content-Type: application/json
+=======
+url: '{{base_url}}/api/auth/register'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+>>>>>>> 6858456e45bcc8e44c984f7c84c28cc2e1b7fca2
 body:
   type: json
   content: |-
     {
+<<<<<<< HEAD
       "full_name": "Julieth Andrade",
       "email": "julieth20051506@gmail.com",
       "password": "admin1234",
       "id_role": 1,
       "status": true
+=======
+      "full_name": "Nuevo Usuario",
+      "email": "usuario@sisvic.com",
+      "password": "password123",
+      "id_role": 1
+>>>>>>> 6858456e45bcc8e44c984f7c84c28cc2e1b7fca2
     }
