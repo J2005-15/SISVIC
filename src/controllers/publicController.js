@@ -54,15 +54,18 @@ const submitAdoptionApplication = async (req, res, next) => {
 // POST /donations - Registrar donación o transferencia
 const submitDonation = async (req, res, next) => {
   try {
-    const { visitor_name, visitor_phone, amount, payment_reference, payment_date } = req.body;
+    const { visitor_name, visitor_email, visitor_phone, amount, payment_method, destination_bank, payment_reference, payment_date } = req.body;
 
     const donation = await Donations.create({
       visitor_name,
+      visitor_email,
       visitor_phone,
-      amount,
+      amount: parseFloat(amount),
+      payment_method,
+      destination_bank,
       payment_reference,
-      payment_date: payment_date || new Date(), // Si el usuario no manda fecha, asume la actual
-      status: 'pending_verification'
+      payment_date: payment_date || new Date(),
+      status: 'Por Verificar'
     });
 
     // Notifica al administrador (sin await para no retrasar la respuesta al usuario)
@@ -70,8 +73,11 @@ const submitDonation = async (req, res, next) => {
       ADMIN_EMAIL,
       'donacion',
       `<strong>Donante:</strong> ${visitor_name}<br>
+       <strong>Email:</strong> ${visitor_email}<br>
        <strong>Teléfono:</strong> ${visitor_phone}<br>
        <strong>Monto:</strong> Bs. ${amount}<br>
+       <strong>Método:</strong> ${payment_method}<br>
+       <strong>Banco:</strong> ${destination_bank}<br>
        <strong>Referencia:</strong> ${payment_reference}`
     );
 
@@ -84,6 +90,7 @@ const submitDonation = async (req, res, next) => {
     if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(400).json({ message: 'Esta referencia de pago ya ha sido registrada previamente' });
     }
+    console.error('Error en submitDonation:', error.message);
     next(error);
   }
 };

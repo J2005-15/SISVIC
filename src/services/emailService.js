@@ -123,6 +123,56 @@ class EmailService {
     }
   }
 
+  async sendStatusUpdateEmail(email, tipo, estado) {
+    const esAdopcion = tipo === 'adopcion';
+    const mensajeEstado = estado === 'Aprobada' ? 'aprobada' : estado === 'Rechazada' ? 'rechazada' : 'actualizada';
+
+    const mailOptions = {
+      from: env.EMAIL_FROM,
+      to: email,
+      subject: `✅ Tu solicitud de ${esAdopcion ? 'adopción' : 'donación'} ha sido ${mensajeEstado}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+          <h2 style="color:#2D6A4F;">🐾 Fundación Misión Nevado — SISCVI</h2>
+          <p style="font-size:16px;">¡Hola!</p>
+          <p style="font-size:15px;line-height:1.6;">
+            Queremos informarte que tu solicitud de <strong>${esAdopcion ? 'adopción' : 'donación'}</strong>
+            ha sido <strong style="color:#2D6A4F;">${mensajeEstado}</strong>.
+          </p>
+
+          ${estado === 'Aprobada' ? `
+            <div style="background:#E8F5E9;border-left:4px solid #2D6A4F;padding:15px;border-radius:5px;margin:20px 0;">
+              <p style="margin:0;font-size:15px;color:#1B5E20;">
+                <strong>¡Felicidades!</strong> Tu trámite ha avanzado. Nuestro equipo se comunicará contigo
+                muy pronto con los próximos pasos.
+              </p>
+            </div>
+          ` : estado === 'Rechazada' ? `
+            <div style="background:#FFEBEE;border-left:4px solid #D32F2F;padding:15px;border-radius:5px;margin:20px 0;">
+              <p style="margin:0;font-size:15px;color:#B71C1C;">
+                Si tienes dudas sobre esta decisión, por favor contáctanos.
+              </p>
+            </div>
+          ` : ''}
+
+          <p style="font-size:13px;color:#999;margin-top:30px;">
+            Gracias por ser parte de SISCVI y apoyar nuestra misión de proteger a nuestros animalitos.
+          </p>
+          <p style="font-size:11px;color:#CCC;">Mensaje automático — No respondas este correo.</p>
+        </div>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Notificación de estado enviada a ${email}`);
+      return true;
+    } catch (error) {
+      console.error('Error al enviar notificación de estado:', error);
+      return false;
+    }
+  }
+
   async sendInventoryAlertEmail(email, adminName, lowStockProducts, expiringProducts) {
     const lowStockHTML = lowStockProducts.map(product => `
       <tr>

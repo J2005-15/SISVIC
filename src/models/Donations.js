@@ -7,30 +7,42 @@ const Donations = sequelize.define('Donations', {
     primaryKey: true,
     autoIncrement: true
   },
-  visitor_name: { 
-    type: DataTypes.STRING, 
-    allowNull: false 
+  visitor_name: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  visitor_phone: { 
-    type: DataTypes.STRING, 
-    allowNull: false 
+  visitor_email: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
-  amount: { 
-    type: DataTypes.DECIMAL(10, 2), 
-    allowNull: false 
+  visitor_phone: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  payment_reference: { 
-    type: DataTypes.STRING, 
+  amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  payment_method: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  destination_bank: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  payment_reference: {
+    type: DataTypes.STRING,
     allowNull: false,
-    unique: true // Evita que registren el mismo número de transferencia dos veces
+    unique: true
   },
-  payment_date: { 
-    type: DataTypes.DATE, 
-    allowNull: false 
+  payment_date: {
+    type: DataTypes.DATE,
+    allowNull: false
   },
   status: {
     type: DataTypes.STRING,
-    defaultValue: 'pending_verification' // El administrador auditará y lo pasará a 'verified'
+    defaultValue: 'Por Verificar'
   }
 }, {
   tableName: 'Donations',

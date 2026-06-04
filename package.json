@@ -34,7 +34,8 @@
     "pg": "^8.20.0",
     "sequelize": "^6.37.8",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^6.0.2"
   },
   "devDependencies": {
     "jest": "^30.4.2",

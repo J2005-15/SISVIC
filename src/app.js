@@ -11,12 +11,58 @@ const { sequelize } = require('./config/database');
 
 const crypto      = require('crypto');
 
+// ── FUNCIÓN DE NOTIFICACIONES POR TELÉFONO (SMS) ──
+async function notifyByPhone(phone, name, tipo, estado) {
+  // Formatea el estado del mensaje
+  let mensajeEstado = '';
+  if (estado === 'Aprobada' || estado === 'Confirmado' || estado === 'registrada') {
+    mensajeEstado = estado === 'registrada' ? 'registrada' : 'aprobada';
+  } else if (estado === 'Rechazada' || estado === 'Inválido') {
+    mensajeEstado = 'rechazada';
+  }
+
+  const tipoTexto = tipo === 'adopcion' ? 'adopción' : 'donación';
+  const mensaje = `¡Hola ${name}! Tu solicitud de ${tipoTexto} ha sido ${mensajeEstado}. Gracias por confiar en Misión Nevado 🐾`;
+
+  console.log(`
+    ╔════════════════════════════════════════════════════════════════╗
+    ║           📱 NOTIFICACIÓN SMS ENVIADA                          ║
+    ╠════════════════════════════════════════════════════════════════╣
+    ║ Teléfono: ${phone.padEnd(56)}║
+    ║ Mensaje: ${mensaje.substring(0, 56).padEnd(56)}║
+    ╚════════════════════════════════════════════════════════════════╝
+  `);
+
+  // TWILIO - Descomenta para usar SMS real
+  try {
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+      const twilio = require('twilio');
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+      await client.messages.create({
+        body: mensaje,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phone
+      });
+      console.log(`✅ SMS enviado exitosamente a ${phone}`);
+    }
+  } catch (err) {
+    console.error('⚠️ No se pudo enviar SMS (Twilio no configurado):', err.message);
+  }
+
+  return true;
+}
+
 const ADMIN_EMAIL    = 'julieth20051506@siscvi.com';
 const DASHBOARD_URL  = 'http://localhost:5173'; // puerto del dashboard
 
 // Agrega la columna reset_token la primera vez que arranca el servidor
 sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS reset_token VARCHAR(64)`)
   .catch(err => console.error('reset_token column:', err.message));
+
+// Agrega la columna visitor_email a Donations la primera vez que arranca el servidor
+sequelize.query(`ALTER TABLE "Donations" ADD COLUMN IF NOT EXISTS visitor_email VARCHAR(255)`)
+  .catch(err => console.error('visitor_email column:', err.message));
 
 // ── Carpeta de uploads (se crea sola si no existe) ────────────────────────────
 const uploadDir = path.join(__dirname, '../uploads');
@@ -232,14 +278,41 @@ app.get('/api/donations', async (req, res) => {
   }
 });
 
-// ── PATCH /api/donations/:id — Actualiza el estado de una donación ────────────
+// ── PATCH /api/donations/:id — Actualiza estado y notifica al donante ────────
 app.patch('/api/donations/:id', async (req, res) => {
   const { status } = req.body;
   try {
+    // 1. Obtiene datos del donante
+    const [donationData] = await sequelize.query(
+      `SELECT visitor_email, visitor_phone, visitor_name FROM "Donations" WHERE id_donation = :id`,
+      { replacements: { id: req.params.id } }
+    );
+    const visitor_email = donationData[0]?.visitor_email;
+    const visitor_phone = donationData[0]?.visitor_phone;
+    const visitor_name = donationData[0]?.visitor_name;
+
+    // 2. Actualiza estado
     await sequelize.query(
       `UPDATE "Donations" SET status = :status, updated_at = NOW() WHERE id_donation = :id`,
       { replacements: { status, id: req.params.id } }
     );
+
+    // 3. NOTIFICACIÓN POR EMAIL
+    if (visitor_email) {
+      console.log(`📧 Enviando notificación de donación a ${visitor_email}...`);
+      emailService.sendStatusUpdateEmail(visitor_email, 'donacion', status).catch(err =>
+        console.error('❌ Error enviando email:', err.message)
+      );
+    }
+
+    // 4. NOTIFICACIÓN POR TELÉFONO
+    if (visitor_phone) {
+      console.log(`📱 Enviando notificación a ${visitor_phone}...`);
+      notifyByPhone(visitor_phone, visitor_name, 'donacion', status).catch(err =>
+        console.error('❌ Error enviando SMS:', err.message)
+      );
+    }
+
     res.status(200).json({ message: 'Estado actualizado' });
   } catch (error) {
     console.error('Error al actualizar donación:', error.message);
@@ -372,18 +445,27 @@ app.delete('/api/owners/:id', async (req, res) => {
   }
 });
 
-// ── PATCH /api/adoption-approve/:id — Aprueba una adopción y registra propietario ──
+// ── PATCH /api/adoption-approve/:id — Aprueba/rechaza adopción y notifica ──
 app.patch('/api/adoption-approve/:id', async (req, res) => {
   const { estado, full_name, id_card, phone_number, address } = req.body;
   try {
-    // 1. Actualiza el estado de la adopción
+    // 1. Obtiene datos del solicitante
+    const [adoptionData] = await sequelize.query(
+      `SELECT visitor_email, visitor_phone, visitor_name FROM "Adoption" WHERE "id_Adoption" = :id`,
+      { replacements: { id: req.params.id } }
+    );
+    const visitor_email = adoptionData[0]?.visitor_email;
+    const visitor_phone = adoptionData[0]?.visitor_phone;
+    const visitor_name = adoptionData[0]?.visitor_name;
+
+    // 2. Actualiza el estado de la adopción
     await sequelize.query(
       `UPDATE "Adoption" SET "Adoption_status" = :status, updated_at = NOW() WHERE "id_Adoption" = :id`,
       { replacements: { status: estado, id: req.params.id } }
     );
 
+    // 3. Si está aprobada, registra propietario y marca mascota
     if (estado === 'Aprobada') {
-      // 2. Obtiene el id_pet de esta adopción
       const [rows] = await sequelize.query(
         `SELECT id_pet FROM "Adoption" WHERE "id_Adoption" = :id`,
         { replacements: { id: req.params.id } }
@@ -391,19 +473,16 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
       const id_pet = rows[0]?.id_pet;
 
       if (id_pet) {
-        // 3. Marca la mascota como adoptada
         await sequelize.query(
           `UPDATE "Pets" SET status = 'adopted', updated_at = NOW() WHERE id_pet = :id_pet`,
           { replacements: { id_pet } }
         );
       }
 
-      // 4. Obtiene el primer sector disponible para satisfacer el FK
       const [sectors] = await sequelize.query(`SELECT id_sector FROM "Sectors" LIMIT 1`);
       const id_sector = sectors[0]?.id_sector;
 
       if (id_sector) {
-        // 5. Registra al adoptante como propietario (ignora si la cédula ya existe)
         await sequelize.query(
           `INSERT INTO "Owners" (full_name, id_card, phone_number, address, id_sector)
            VALUES (:full_name, :id_card, :phone_number, :address, :id_sector)
@@ -411,6 +490,22 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
           { replacements: { full_name, id_card, phone_number, address: address || 'No especificada', id_sector } }
         );
       }
+    }
+
+    // 4. NOTIFICACIÓN POR EMAIL (asincrónico, sin await)
+    if (visitor_email) {
+      console.log(`📧 Enviando notificación de adopción a ${visitor_email}...`);
+      emailService.sendStatusUpdateEmail(visitor_email, 'adopcion', estado).catch(err =>
+        console.error('❌ Error enviando email:', err.message)
+      );
+    }
+
+    // 5. NOTIFICACIÓN POR TELÉFONO (SMS/WhatsApp)
+    if (visitor_phone) {
+      console.log(`📱 Enviando notificación a ${visitor_phone}...`);
+      notifyByPhone(visitor_phone, visitor_name, 'adopcion', estado).catch(err =>
+        console.error('❌ Error enviando SMS:', err.message)
+      );
     }
 
     res.status(200).json({ message: 'Trámite procesado correctamente' });
@@ -484,6 +579,163 @@ app.post('/api/login', async (req, res) => {
   } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
+  }
+});
+
+// ── TEST: Verificar estructura de tabla Donations ──
+app.get('/api/test/donations-schema', async (req, res) => {
+  try {
+    const columns = await sequelize.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'Donations'
+      ORDER BY ordinal_position
+    `);
+    res.json({ columns: columns[0] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ── POST /api/public/donations — Registra una donación pública ────────
+app.post('/api/public/donations', async (req, res) => {
+  const { visitor_name, visitor_email, visitor_phone, amount, payment_method, destination_bank, payment_reference, payment_date } = req.body;
+
+  console.log('📥 Datos recibidos:', { visitor_name, visitor_email, visitor_phone, amount, payment_method, destination_bank, payment_reference, payment_date });
+
+  try {
+    if (!visitor_name || !visitor_email || !visitor_phone || !amount || !payment_reference || !payment_date || !destination_bank) {
+      return res.status(400).json({ success: false, message: 'Faltan datos requeridos' });
+    }
+
+    console.log('✅ Validación pasada. Intentando INSERT...');
+
+    const [result] = await sequelize.query(
+      `INSERT INTO "Donations" (visitor_name, visitor_email, visitor_phone, amount, payment_method, destination_bank, payment_reference, payment_date, status)
+       VALUES (:visitor_name, :visitor_email, :visitor_phone, :amount, :payment_method, :destination_bank, :payment_reference, :payment_date, 'Por Verificar')
+       RETURNING id_donation, visitor_name, visitor_email, amount, status, created_at`,
+      {
+        replacements: {
+          visitor_name,
+          visitor_email,
+          visitor_phone,
+          amount: parseFloat(amount),
+          payment_method: payment_method || null,
+          destination_bank: destination_bank || null,
+          payment_reference,
+          payment_date
+        }
+      }
+    );
+
+    console.log('✅ INSERT exitoso:', result);
+    const donation = result[0];
+
+    if (visitor_email) {
+      console.log(`📧 Enviando confirmación de donación a ${visitor_email}...`);
+      emailService.sendStatusUpdateEmail(visitor_email, 'donacion', 'registrada').catch(err =>
+        console.error('Error enviando email al donante:', err.message)
+      );
+    }
+
+    if (visitor_phone) {
+      console.log(`📱 Enviando confirmación por SMS a ${visitor_phone}...`);
+      notifyByPhone(visitor_phone, visitor_name, 'donacion', 'registrada').catch(err =>
+        console.error('Error enviando SMS:', err.message)
+      );
+    }
+
+    console.log(`🔔 Enviando alerta al admin...`);
+    emailService.sendAdminAlert(ADMIN_EMAIL, 'donacion', `
+      <p><strong>Nombre:</strong> ${visitor_name}</p>
+      <p><strong>Email:</strong> ${visitor_email}</p>
+      <p><strong>Teléfono:</strong> ${visitor_phone}</p>
+      <p><strong>Monto:</strong> Bs. ${amount}</p>
+      <p><strong>Referencia:</strong> ${payment_reference}</p>
+      <p><strong>Método:</strong> ${payment_method}</p>
+      <p><strong>Banco Destino:</strong> ${destination_bank}</p>
+      <p><strong>Fecha:</strong> ${payment_date}</p>
+    `).catch(err => console.error('Error enviando alerta admin:', err.message));
+
+    res.status(201).json({ success: true, message: 'Donación registrada exitosamente', data: donation });
+  } catch (error) {
+    console.error('❌ ERROR EN DONACIÓN:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({ success: false, message: 'Error: ' + error.message });
+  }
+});
+
+// ── GET /api/status/:email — Consulta estado de trámites por email ──────────
+app.get('/api/status/:email', async (req, res) => {
+  const { email } = req.params;
+
+  try {
+    const tramites = [];
+
+    // 1. Busca adopciones del usuario
+    try {
+      const [adoptions] = await sequelize.query(
+        `SELECT
+           "id_Adoption" as id,
+           'Adopción' as tipo,
+           COALESCE(p.name, 'Mascota') as referencia,
+           "Adoption_status" as estado,
+           created_at as fecha
+         FROM "Adoption" a
+         LEFT JOIN "Pets" p ON p.id_pet = a.id_pet
+         WHERE a.visitor_email ILIKE :email
+         ORDER BY a.created_at DESC
+         LIMIT 5`,
+        { replacements: { email } }
+      );
+      if (adoptions && adoptions.length > 0) {
+        tramites.push(...adoptions);
+      }
+    } catch (err) {
+      console.log('No se encontraron adopciones:', err.message);
+    }
+
+    // 2. Busca donaciones del usuario
+    try {
+      const [donations] = await sequelize.query(
+        `SELECT
+           id_donation as id,
+           'Donación' as tipo,
+           'Aporte: ' || CAST(amount AS VARCHAR) || ' Bs.' as referencia,
+           status as estado,
+           created_at as fecha
+         FROM "Donations"
+         WHERE visitor_email ILIKE :email
+         ORDER BY created_at DESC
+         LIMIT 5`,
+        { replacements: { email } }
+      );
+      if (donations && donations.length > 0) {
+        tramites.push(...donations);
+      }
+    } catch (err) {
+      console.log('No se encontraron donaciones:', err.message);
+    }
+
+    // 3. Ordena por fecha
+    tramites.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    if (tramites.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No encontramos trámites para este correo electrónico.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      email,
+      tramites
+    });
+
+  } catch (error) {
+    console.error('Error al consultar estado:', error.message);
+    res.status(500).json({ success: false, message: 'Error al consultar estado: ' + error.message });
   }
 });
 
