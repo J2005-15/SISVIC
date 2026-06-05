@@ -1,8 +1,23 @@
+const cors = require('cors'); // 1. Importamos cors aquí arriba
 const { validateEnv } = require('./config/env');
 const { testConnection } = require('./config/database');
 const { syncDatabase } = require('./models');
 const { scheduleInventoryAlert } = require('./services/scheduledTasks');
 const app = require('./app');
+
+// ==========================================
+// 2. PERMISOS DE SEGURIDAD (CORS)
+// ==========================================
+// OJO: Si Netlify te da error de CORS, debes mover este bloque de código
+// a tu archivo app.js, justo debajo de la línea "const app = express();"
+app.use(cors({
+  origin: [
+    'http://localhost:5173', 
+    'sisvicmisionnevado.netlify.app'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
 
 // Validar variables de entorno
 validateEnv();
@@ -22,13 +37,15 @@ validateEnv();
   // Inicializar tareas programadas
   scheduleInventoryAlert();
 
-  // Puerto
+  // ==========================================
+  // 3. PUERTO PARA LA NUBE (Render)
+  // ==========================================
   const PORT = process.env.PORT || 3000;
-
+  
   // Iniciar servidor
   app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
-    console.log(`Entorno: ${process.env.NODE_ENV}`);
-    console.log(`Base de datos: ${process.env.DB_ENV}`);
+    console.log(`Entorno: ${process.env.NODE_ENV || 'desarrollo'}`);
+    console.log(`Base de datos: ${process.env.DB_ENV || 'Neon'}`);
   });
 })();

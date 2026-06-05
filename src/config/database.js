@@ -51,7 +51,19 @@ async function testConnection() {
   }
 }
 
+async function syncDatabase() {
+  try {
+    // { force: true } borraría todo, así que usamos { alter: true }
+    // esto actualiza las tablas existentes sin borrar tus datos.
+    await sequelize.sync({ alter: true });
+    console.log('✅ Base de datos sincronizada correctamente.');
+  } catch (error) {
+    console.error('❌ Error al sincronizar la base de datos:', error.message);
+  }
+}
+
 module.exports = {
   sequelize,
-  testConnection
+  testConnection,
+  syncDatabase 
 };
