@@ -94,7 +94,8 @@ syncDatabase().then(() => {
 // Middlewares de seguridad y logging
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : '*',
+  origin: 'https://sisvicmisionnevado.netlify.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 app.use(morgan('combined'));
