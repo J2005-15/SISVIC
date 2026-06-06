@@ -53,15 +53,21 @@ async function testConnection() {
 
 async function syncDatabase() {
   try {
-    // { force: true } borraría todo, así que usamos { alter: true }
-    // esto actualiza las tablas existentes sin borrar tus datos.
-    await sequelize.sync({ alter: true });
-    console.log('✅ Base de datos sincronizada correctamente.');
+    await sequelize.authenticate();
+    console.log('✅ Conectado a Neon.');
+    
+    // CAMBIO CRÍTICO: 
+    // Usaremos { alter: false } o simplemente eliminamos la sincronización 
+    // automática si las tablas ya existen.
+    // O mejor aún, vamos a forzar solo la sincronización si es necesario.
+    
+    // Esta línea es más segura: no intenta recrear tablas, solo asegura la conexión
+    await sequelize.sync(); 
+    console.log('🚀 Base de datos verificada.');
   } catch (error) {
-    console.error('❌ Error al sincronizar la base de datos:', error.message);
+    console.error('⚠️ Error en sincronización:', error.message);
   }
 }
-
 module.exports = {
   sequelize,
   testConnection,

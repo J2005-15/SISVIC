@@ -7,7 +7,7 @@ const path    = require('path');
 const fs      = require('fs');
 const bcrypt  = require('bcrypt');
 const emailService = require('./services/emailService');
-const { sequelize, syncDatabase } = require('./config/database');
+const { sequelize,syncDatabase } = require('./config/database');
 
 const crypto      = require('crypto');
 
@@ -86,10 +86,9 @@ const errorHandler = require('./middlewares/errorHandler');
 
 // Crear instancia de Express
 const app = express();
-const { syncDatabase } = require('./config/database');
 
 syncDatabase().then(() => {
-    console.log("🛠 Sistema SISVIC listo para operar.");
+   console.log("🛠 Sistema SISVIC listo para operar.");
 });
 
 // Middlewares de seguridad y logging
