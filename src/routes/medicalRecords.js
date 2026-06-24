@@ -1,10 +1,17 @@
 const express = require('express');
 const { getMedicalRecords, getMedicalRecord, createMedicalRecord, updateMedicalRecord, deleteMedicalRecord } = require('../controllers/medicalRecordsController');
-const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const { verifyToken, checkRole } = require('../middlewares/auth');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
 
 const router = express.Router();
+
+// Lectura: administrador y veterinario pueden consultar el historial médico.
+// Escritura (POST/PUT/DELETE): ÚNICAMENTE veterinario — el administrador
+// gestiona personal/inventario/usuarios, pero no es quien atiende al paciente,
+// así que no debe poder crear, editar ni eliminar consultas médicas.
+const ROLES_LECTURA_CONSULTAS  = ['administrador', 'veterinario'];
+const ROLES_ESCRITURA_CONSULTAS = ['veterinario'];
 
 // Validación para crear registro médico
 const validateCreateMedicalRecord = [
@@ -40,14 +47,26 @@ const validateCreateMedicalRecord = [
     .optional()
     .isFloat({ min: 0 })
     .withMessage('Temperatura inválida'),
+  body('used_supplies')
+    .optional({ checkFalsy: true })
+    .isArray()
+    .withMessage('Los insumos utilizados deben ser un arreglo'),
+  body('used_supplies.*.id_supply')
+    .optional()
+    .isInt()
+    .withMessage('ID de insumo inválido'),
+  body('used_supplies.*.used_quantity')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Cantidad de insumo inválida'),
   handleValidationErrors
 ];
 
 // Rutas
-router.get('/', authenticateToken, getMedicalRecords);
-router.get('/:id', authenticateToken, getMedicalRecord);
-router.post('/', authenticateToken, validateCreateMedicalRecord, createMedicalRecord);
-router.put('/:id', authenticateToken, validateCreateMedicalRecord, updateMedicalRecord);
-router.delete('/:id', authenticateToken, authorizeRoles('admin'), deleteMedicalRecord);
+router.get('/', verifyToken, checkRole(ROLES_LECTURA_CONSULTAS), getMedicalRecords);
+router.get('/:id', verifyToken, checkRole(ROLES_LECTURA_CONSULTAS), getMedicalRecord);
+router.post('/', verifyToken, checkRole(ROLES_ESCRITURA_CONSULTAS), validateCreateMedicalRecord, createMedicalRecord);
+router.put('/:id', verifyToken, checkRole(ROLES_ESCRITURA_CONSULTAS), validateCreateMedicalRecord, updateMedicalRecord);
+router.delete('/:id', verifyToken, checkRole(ROLES_ESCRITURA_CONSULTAS), deleteMedicalRecord);
 
 module.exports = router;

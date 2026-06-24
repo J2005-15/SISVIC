@@ -24,7 +24,8 @@ const Adoption = sequelize.define('Adoption', {
   },
   visitor_id_card: {
     type: DataTypes.STRING(15),
-    allowNull: true
+    allowNull: true,
+    unique: false
   },
   visitor_address: {
     type: DataTypes.TEXT

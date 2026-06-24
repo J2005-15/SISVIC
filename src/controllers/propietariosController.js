@@ -1,22 +1,25 @@
 const { Owners, Sectors } = require('../models');
 
-// GET - Obtener todos los propietarios
-const getOwners = async (req, res, next) => {
+// GET - Listar todos los propietarios
+exports.getAll = async (req, res) => {
   try {
-    const owners = await Owners.findAll({
-      include: [{
-        model: Sectors,
-        attributes: ['id_sector', 'community_name']
-      }],
-      order: [['full_name', 'ASC']]
+    const propietarios = await Owners.findAll({
+      include: [
+        {
+          model: Sectors,
+          attributes: ['id_sector', 'sector_name']
+        }
+      ],
+      attributes: ['id_owner', 'full_name', 'id_card', 'phone_number', 'address', 'id_sector']
     });
+
     res.status(200).json({
       success: true,
       message: 'Propietarios obtenidos correctamente',
-      owners
+      owners: propietarios
     });
   } catch (error) {
-    console.error('Error en getOwners:', error);
+    console.error('Error en getAll:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener propietarios',
@@ -25,29 +28,34 @@ const getOwners = async (req, res, next) => {
   }
 };
 
-// GET - Obtener un propietario por ID
-const getOwner = async (req, res, next) => {
+// GET - Obtener propietario por ID
+exports.getById = async (req, res) => {
   try {
     const { id } = req.params;
-    const owner = await Owners.findByPk(id, {
-      include: [{
-        model: Sectors,
-        attributes: ['id_sector', 'community_name']
-      }]
+
+    const propietario = await Owners.findByPk(id, {
+      include: [
+        {
+          model: Sectors,
+          attributes: ['id_sector', 'sector_name']
+        }
+      ]
     });
-    if (!owner) {
+
+    if (!propietario) {
       return res.status(404).json({
         success: false,
         message: 'Propietario no encontrado'
       });
     }
+
     res.status(200).json({
       success: true,
       message: 'Propietario obtenido correctamente',
-      owner
+      owner: propietario
     });
   } catch (error) {
-    console.error('Error en getOwner:', error);
+    console.error('Error en getById:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener propietario',
@@ -56,8 +64,8 @@ const getOwner = async (req, res, next) => {
   }
 };
 
-// POST - Crear un nuevo propietario
-const createOwner = async (req, res, next) => {
+// POST - Crear nuevo propietario
+exports.create = async (req, res) => {
   try {
     const { full_name, id_card, phone_number, address, id_sector } = req.body;
 
@@ -87,7 +95,8 @@ const createOwner = async (req, res, next) => {
       });
     }
 
-    const owner = await Owners.create({
+    // Crear propietario
+    const nuevoProprietario = await Owners.create({
       full_name: full_name.trim(),
       id_card: id_card.trim(),
       phone_number: phone_number.trim(),
@@ -98,10 +107,10 @@ const createOwner = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Propietario creado exitosamente',
-      owner
+      owner: nuevoProprietario
     });
   } catch (error) {
-    console.error('Error en createOwner:', error);
+    console.error('Error en create:', error);
     res.status(500).json({
       success: false,
       message: 'Error al crear propietario',
@@ -110,25 +119,26 @@ const createOwner = async (req, res, next) => {
   }
 };
 
-// PUT - Actualizar un propietario
-const updateOwner = async (req, res, next) => {
+// PUT - Actualizar propietario
+exports.update = async (req, res) => {
   try {
     const { id } = req.params;
     const { full_name, id_card, phone_number, address, id_sector } = req.body;
+
+    // Verificar que el propietario existe
+    const propietario = await Owners.findByPk(id);
+    if (!propietario) {
+      return res.status(404).json({
+        success: false,
+        message: 'Propietario no encontrado'
+      });
+    }
 
     // Validar campos requeridos
     if (!full_name || !id_card || !phone_number || !address || !id_sector) {
       return res.status(400).json({
         success: false,
         message: 'Todos los campos (nombre, cédula, teléfono, dirección, sector) son requeridos'
-      });
-    }
-
-    const owner = await Owners.findByPk(id);
-    if (!owner) {
-      return res.status(404).json({
-        success: false,
-        message: 'Propietario no encontrado'
       });
     }
 
@@ -142,7 +152,7 @@ const updateOwner = async (req, res, next) => {
     }
 
     // Verificar que la cédula no esté usada por otro propietario
-    if (id_card !== owner.id_card) {
+    if (id_card !== propietario.id_card) {
       const cedulaDuplicada = await Owners.findOne({ where: { id_card } });
       if (cedulaDuplicada) {
         return res.status(400).json({
@@ -152,7 +162,8 @@ const updateOwner = async (req, res, next) => {
       }
     }
 
-    await owner.update({
+    // Actualizar propietario
+    await propietario.update({
       full_name: full_name.trim(),
       id_card: id_card.trim(),
       phone_number: phone_number.trim(),
@@ -163,10 +174,10 @@ const updateOwner = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Propietario actualizado exitosamente',
-      owner
+      owner: propietario
     });
   } catch (error) {
-    console.error('Error en updateOwner:', error);
+    console.error('Error en update:', error);
     res.status(500).json({
       success: false,
       message: 'Error al actualizar propietario',
@@ -175,37 +186,42 @@ const updateOwner = async (req, res, next) => {
   }
 };
 
-// DELETE - Eliminar un propietario
-const deleteOwner = async (req, res, next) => {
+// DELETE - Eliminar propietario
+exports.delete = async (req, res) => {
   try {
     const { id } = req.params;
-    const owner = await Owners.findByPk(id);
-    if (!owner) {
+
+    // Verificar que el propietario existe
+    const propietario = await Owners.findByPk(id);
+    if (!propietario) {
       return res.status(404).json({
         success: false,
         message: 'Propietario no encontrado'
       });
     }
 
-    await owner.destroy();
+    // Verificar si el propietario tiene animales asociados
+    const animalesAsociados = await propietario.countAnimals();
+    if (animalesAsociados > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `No se puede eliminar. El propietario tiene ${animalesAsociados} animal(es) asociado(s)`
+      });
+    }
+
+    // Eliminar propietario
+    await propietario.destroy();
+
     res.status(200).json({
       success: true,
       message: 'Propietario eliminado exitosamente'
     });
   } catch (error) {
-    console.error('Error en deleteOwner:', error);
+    console.error('Error en delete:', error);
     res.status(500).json({
       success: false,
       message: 'Error al eliminar propietario',
       error: error.message
     });
   }
-};
-
-module.exports = {
-  getOwners,
-  getOwner,
-  createOwner,
-  updateOwner,
-  deleteOwner
 };

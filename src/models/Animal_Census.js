@@ -31,6 +31,14 @@ const Animal_Census = sequelize.define('Animal_Census', {
     type: DataTypes.STRING(20),
     allowNull: true
   },
+  census_date: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  symptoms: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   id_owner: {
     type: DataTypes.INTEGER,
     allowNull: false,

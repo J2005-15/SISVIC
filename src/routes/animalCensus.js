@@ -7,6 +7,9 @@ const { handleValidationErrors } = require('../middlewares/validation');
 const router = express.Router();
 
 // Validación para crear censo de animal
+// IMPORTANTE: los campos realmente opcionales usan optional({ checkFalsy: true })
+// para que un '' (string vacío, como llega desde un <select> o <input> sin valor)
+// no dispare la validación — por defecto .optional() solo ignora 'undefined'.
 const validateCreateAnimalCensus = [
   body('species')
     .isIn(['Canino', 'Felino', 'Otro'])
@@ -15,16 +18,22 @@ const validateCreateAnimalCensus = [
     .isIn(['M', 'H'])
     .withMessage('Género inválido'),
   body('color')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['Negro', 'Blanco', 'Marron', 'Gris', 'Dorado', 'Manchado', 'Bicolor', 'Tricolor'])
     .withMessage('Color inválido'),
   body('id_owner')
     .isInt()
     .withMessage('El propietario es requerido'),
   body('id_sector')
-    .optional()
     .isInt()
-    .withMessage('Sector inválido'),
+    .withMessage('El sector es requerido'),
+  body('census_date')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Fecha de censo inválida'),
+  body('symptoms')
+    .optional({ checkFalsy: true })
+    .trim(),
   handleValidationErrors
 ];
 

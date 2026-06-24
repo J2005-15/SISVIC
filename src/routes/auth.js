@@ -85,25 +85,38 @@ router.post('/login', validateLogin, async (req, res) => {
       return res.status(401).json({ message: 'Usuario inactivo' });
     }
 
-    // Generar token JWT
+    // Normalizar nombre del rol (corregir typo "adminiatrador" → "administrador")
+    const normalizeRoleName = (roleName) => {
+      if (!roleName) return 'operador';
+      const normalized = roleName.toLowerCase().trim();
+      if (normalized === 'adminiatrador') return 'administrador';
+      return normalized;
+    };
+
+    const rolNormalizado = normalizeRoleName(user.Role.role_name);
+
+    // Generar token JWT con ID y nombre del rol
     const token = jwt.sign(
       {
         id: user.id_user,
         email: user.email,
-        role: user.Role.role_name
+        id_role: user.id_role,           // ID numérico del rol (1, 2, 3)
+        role: rolNormalizado              // Nombre normalizado del rol
       },
       env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    res.json({
-      message: 'Login exitoso',
+    res.status(200).json({
+      success: true,
       token,
-      user: {
-        id: user.id_user,
+      usuario: {
+        id_user: user.id_user,
+        id_role: user.id_role,
         full_name: user.full_name,
         email: user.email,
-        role: user.Role.role_name
+        nombre: user.full_name,
+        rol: rolNormalizado
       }
     });
   } catch (error) {

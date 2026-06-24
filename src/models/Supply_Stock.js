@@ -23,6 +23,10 @@ const Supply_Stock = sequelize.define('Supply_Stock', {
     type: DataTypes.ENUM('Unidad', 'ML', 'MG', 'Frasco', 'Caja'),
     allowNull: false
   },
+  min_stock: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   batch_number: {
     type: DataTypes.STRING(50),
     allowNull: true

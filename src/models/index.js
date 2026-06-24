@@ -10,6 +10,7 @@ const Complaints = require('./Complaints');
 const Day_Attendance = require('./Day_Attendance');
 const Medical_Records = require('./Medical_Records');
 const Supply_Stock = require('./Supply_Stock');
+const Stock_Movements = require('./Stock_Movements');
 const Used_Supplies = require('./Used_Supplies');
 const Pets = require('./Pets');
 const Adoption = require('./Adoption');
@@ -29,6 +30,7 @@ const models = {
   Day_Attendance,
   Medical_Records,
   Supply_Stock,
+  Stock_Movements,
   Used_Supplies,
   Pets,
   Adoption,
@@ -78,6 +80,10 @@ Users.hasMany(Medical_Records, { foreignKey: 'id_vet_user' });
 Medical_Records.belongsTo(Medical_Day, { foreignKey: 'id_day' });
 Medical_Day.hasMany(Medical_Records, { foreignKey: 'id_day' });
 
+// Stock_Movements pertenece a Supply_Stock (historial de ajustes de cantidad)
+Stock_Movements.belongsTo(Supply_Stock, { foreignKey: 'id_supply' });
+Supply_Stock.hasMany(Stock_Movements, { foreignKey: 'id_supply' });
+
 // Used_Supplies pertenece a Medical_Records y Supply_Stock
 Used_Supplies.belongsTo(Medical_Records, { foreignKey: 'id_record' });
 Medical_Records.hasMany(Used_Supplies, { foreignKey: 'id_record' });
@@ -98,14 +104,6 @@ const syncDatabase = async (options = {}) => {
   }
 };
 
-sequelize.sync({ force: false }) // 'force: false' para que no borre nada si ya existen
-  .then(() => {
-    console.log("Tablas sincronizadas correctamente.");
-  })
-  .catch((err) => {
-    console.error("Error al sincronizar tablas:", err);
-  });
-  
 module.exports = {
   ...models,
   syncDatabase

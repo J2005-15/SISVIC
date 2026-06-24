@@ -25,7 +25,12 @@ const Staff_Volunteers = sequelize.define('Staff_Volunteers', {
     allowNull: false
   },
   staff_type: {
-    type: DataTypes.ENUM('Veterinario', 'Asistente', 'Logística', 'Captador', 'Otro'),
+    type: DataTypes.ENUM('Rescates', 'Rehabilitación', 'Apoyo en Jornadas', 'Educación Comunitaria', 'Campañas de Incidencia', 'Capacitación'),
+    allowNull: false
+  },
+  day_attendances: {
+    type: DataTypes.JSON,
+    defaultValue: [],
     allowNull: false
   }
 }, {

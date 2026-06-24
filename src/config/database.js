@@ -17,7 +17,7 @@ if (env.DB_ENV === 'local') {
       acquire: 30000,
       idle: 10000
     },
-    logging: env.NODE_ENV === 'development' ? console.log : false
+    logging: false
   });
 } else if (env.DB_ENV === 'remote') {
   sequelize = new Sequelize(env.DB_URI_REMOTE, {
@@ -28,12 +28,17 @@ if (env.DB_ENV === 'local') {
       acquire: 60000,
       idle: 30000
     },
-    logging: env.NODE_ENV === 'development' ? console.log : false,
+    logging: false,
     dialectOptions: {
-      ssl: true,
-      statement_timeout: 60000
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      },
+      statement_timeout: 60000,
+      keepAlives: true
     },
-    connectTimeoutMs: 60000
+    connectTimeoutMs: 60000,
+    requestTimeout: 60000
   });
 } else {
   throw new Error('Configuración de base de datos inválida. DB_ENV debe ser "local" o "remote".');

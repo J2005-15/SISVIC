@@ -50,7 +50,7 @@ const getAnimalCensus = async (req, res, next) => {
 // Crear un nuevo censo de animal
 const createAnimalCensus = async (req, res, next) => {
   try {
-    const { animal_name, species, gender, breed, color, approx_age, id_owner, id_sector } = req.body;
+    const { animal_name, species, gender, breed, color, approx_age, census_date, symptoms, id_owner, id_sector } = req.body;
     const animalCensus = await Animal_Census.create({
       animal_name,
       species,
@@ -58,6 +58,8 @@ const createAnimalCensus = async (req, res, next) => {
       breed,
       color,
       approx_age,
+      census_date,
+      symptoms,
       id_owner,
       id_sector
     });
@@ -74,12 +76,12 @@ const createAnimalCensus = async (req, res, next) => {
 const updateAnimalCensus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { animal_name, species, gender, breed, color, approx_age, id_owner, id_sector } = req.body;
+    const { animal_name, species, gender, breed, color, approx_age, census_date, symptoms, id_owner, id_sector } = req.body;
     const animalCensus = await Animal_Census.findByPk(id);
     if (!animalCensus) {
       return res.status(404).json({ message: 'Censo de animal no encontrado' });
     }
-    await animalCensus.update({ animal_name, species, gender, breed, color, approx_age, id_owner, id_sector });
+    await animalCensus.update({ animal_name, species, gender, breed, color, approx_age, census_date, symptoms, id_owner, id_sector });
     res.json({
       message: 'Censo de animal actualizado exitosamente',
       animalCensus

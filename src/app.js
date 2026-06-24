@@ -7,7 +7,7 @@ const path    = require('path');
 const fs      = require('fs');
 const bcrypt  = require('bcrypt');
 const emailService = require('./services/emailService');
-const { sequelize,syncDatabase } = require('./config/database');
+const { sequelize } = require('./config/database');
 
 const crypto      = require('crypto');
 
@@ -87,15 +87,37 @@ const errorHandler = require('./middlewares/errorHandler');
 // Crear instancia de Express
 const app = express();
 
-syncDatabase().then(() => {
-   console.log("🛠 Sistema SISVIC listo para operar.");
-});
+// La autenticación y sincronización de la base de datos ahora se controlan
+// exclusivamente desde server.js (ciclo de reintentos), para evitar llamadas
+// sueltas a Sequelize antes de confirmar que la conexión está disponible.
 
 // Middlewares de seguridad y logging
 app.use(helmet());
+
+// ==========================================
+// POLÍTICA CORS — whitelist dinámica
+// ==========================================
+// Único punto donde se configura CORS en todo el backend (antes solo
+// existía aquí Y en server.js, duplicado — eso hacía que Express enviara
+// dos cabeceras Access-Control-Allow-Origin distintas para la misma
+// petición, lo que el navegador rechaza como ERR_FAILED sin importar si
+// el origen era válido).
+// Se permite EXCLUSIVAMENTE el entorno local y el de producción en Netlify.
+const CORS_WHITELIST = [
+  'http://localhost:5173',
+  'https://sisvicmisionnevado.netlify.app'
+];
+
 app.use(cors({
-  origin: 'https://sisvicmisionnevado.netlify.app',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: (origin, callback) => {
+    // Sin header Origin (curl, Postman, llamadas servidor-a-servidor): se permite.
+    // Con header Origin: debe estar exactamente en la whitelist.
+    if (!origin || CORS_WHITELIST.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origen no permitido por la política CORS: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
 app.use(morgan('combined'));
