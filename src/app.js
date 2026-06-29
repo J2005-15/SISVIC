@@ -103,39 +103,30 @@ const app = express();
 app.use(helmet());
 
 // ==========================================
-// POLÍTICA CORS — whitelist dinámica
+// POLÍTICA CORS — whitelist fija (hardcodeada a propósito)
 // ==========================================
 // Único punto donde se configura CORS en todo el backend (antes solo
 // existía aquí Y en server.js, duplicado — eso hacía que Express enviara
 // dos cabeceras Access-Control-Allow-Origin distintas para la misma
 // petición, lo que el navegador rechaza como ERR_FAILED sin importar si
 // el origen era válido).
-// La whitelist ya no es un array fijo: se construye a partir de
-// FRONTEND_URL (variable de entorno, admite varios orígenes separados por
-// coma — útil si Vercel/Netlify generan un dominio de preview distinto al
-// de producción) más los dos orígenes base que siempre deben funcionar.
-// Así, cambiar de hosting o agregar un dominio nuevo es un cambio de
-// configuración en la plataforma (Render/Vercel), no un redeploy de código.
-// Quita un '/' final si alguien lo pega por error en la variable de entorno
-// (el header Origin que manda el navegador NUNCA trae slash final, así que
-// una sola entrada con '/' de más rompía el match exacto en silencio).
+// Decisión explícita: NO se lee de process.env.FRONTEND_URL — los 3
+// orígenes quedan fijos en el código para eliminar cualquier fallo de
+// lectura de variables de entorno en Render. Agregar un dominio nuevo
+// requiere editar esta lista y redesplegar.
 const sinSlashFinal = (url) => url.replace(/\/+$/, '');
-
-const FRONTEND_URLS_ENV = (process.env.FRONTEND_URL || '')
-  .split(',')
-  .map(url => sinSlashFinal(url.trim()))
-  .filter(Boolean);
 
 const CORS_WHITELIST = [
   'http://localhost:5173',
-  'https://sisvicmisionnevado.netlify.app',
-  ...FRONTEND_URLS_ENV
-];
+  'https://paneladministrativosisvic.netlify.app',
+].map(sinSlashFinal);
 
+// Este bloque debe ir ANTES que cualquier otra definición de rutas o
+// middleware de negocio (helmet ya corrió arriba, eso no afecta CORS).
 app.use(cors({
   origin: (origin, callback) => {
     // Sin header Origin (curl, Postman, llamadas servidor-a-servidor): se permite.
-    // Con header Origin: debe estar (normalizado) en la whitelist.
+    // Con header Origin: debe estar (normalizado, sin slash final) en la whitelist.
     if (!origin || CORS_WHITELIST.includes(sinSlashFinal(origin))) {
       return callback(null, true);
     }
