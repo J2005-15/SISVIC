@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getSupplyStocks,
+  getSupplyStockStats,
   getSupplyStock,
   createSupplyStock,
   updateSupplyStock,
@@ -49,9 +50,10 @@ const validateCreateSupplyStock = [
   handleValidationErrors
 ];
 
-// Rutas GET — /history/:id debe ir ANTES de /:id para evitar conflicto de rutas en Express
+// Rutas GET — /history/:id y /stats deben ir ANTES de /:id para evitar conflicto de rutas en Express
 // Lectura: cualquier usuario autenticado (sin restricción de rol)
 router.get('/',            verifyToken, getSupplyStocks);
+router.get('/stats',       verifyToken, getSupplyStockStats);
 router.get('/history/:id', verifyToken, getSupplyHistory);
 router.get('/:id',         verifyToken, getSupplyStock);
 

@@ -23,12 +23,22 @@ const Day_Attendance = sequelize.define('Day_Attendance', {
       key: 'id_owner'
     }
   },
+  // Quien atendió: exactamente uno de los dos debe estar presente
+  // (personal pagado o voluntario) — se valida en el controlador, no aquí.
   id_staff: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
-      model: 'Staff_Volunteers',
+      model: 'Staff',
       key: 'id_staff'
+    }
+  },
+  id_volunteer: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Volunteers',
+      key: 'id_volunteer'
     }
   },
   arrival_time: {

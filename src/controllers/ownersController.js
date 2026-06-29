@@ -1,19 +1,41 @@
+const { Op } = require('sequelize');
 const { Owners, Sectors } = require('../models');
 
-// GET - Obtener todos los propietarios
+// GET - Obtener propietarios — paginado y filtrable desde el servidor, igual
+// que Users y Animal_Census. Query params: page (def. 1), limit (def. 10),
+// search (nombre completo o cédula, parcial case-insensitive).
 const getOwners = async (req, res, next) => {
   try {
-    const owners = await Owners.findAll({
+    const page  = Math.max(1, parseInt(req.query.page, 10)  || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const search = (req.query.search || '').trim();
+    const offset = (page - 1) * limit;
+
+    const whereClause = search ? {
+      [Op.or]: [
+        { full_name: { [Op.iLike]: `%${search}%` } },
+        { id_card: { [Op.iLike]: `%${search}%` } }
+      ]
+    } : {};
+
+    const { count, rows } = await Owners.findAndCountAll({
+      where: whereClause,
       include: [{
         model: Sectors,
         attributes: ['id_sector', 'community_name']
       }],
-      order: [['full_name', 'ASC']]
+      order: [['full_name', 'ASC']],
+      limit,
+      offset,
     });
+
     res.status(200).json({
-      success: true,
-      message: 'Propietarios obtenidos correctamente',
-      owners
+      data: rows,
+      metadata: {
+        totalRecords: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      }
     });
   } catch (error) {
     console.error('Error en getOwners:', error);

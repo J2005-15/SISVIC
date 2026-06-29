@@ -1,6 +1,6 @@
 const express = require('express');
 const { getAnimalCensuses, getAnimalCensus, createAnimalCensus, updateAnimalCensus, deleteAnimalCensus } = require('../controllers/animalCensusController');
-const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const { verifyToken, checkRole } = require('../middlewares/auth');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
 
@@ -40,8 +40,8 @@ const validateCreateAnimalCensus = [
 // Rutas
 router.get('/', getAnimalCensuses);
 router.get('/:id', getAnimalCensus);
-router.post('/', authenticateToken, validateCreateAnimalCensus, createAnimalCensus);
-router.put('/:id', authenticateToken, validateCreateAnimalCensus, updateAnimalCensus);
-router.delete('/:id', authenticateToken, authorizeRoles('admin'), deleteAnimalCensus);
+router.post('/', verifyToken, validateCreateAnimalCensus, createAnimalCensus);
+router.put('/:id', verifyToken, validateCreateAnimalCensus, updateAnimalCensus);
+router.delete('/:id', verifyToken, checkRole(['administrador']), deleteAnimalCensus);
 
 module.exports = router;

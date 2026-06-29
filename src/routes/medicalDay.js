@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param } = require('express-validator');
 const { getMedicalDays, getMedicalDay, createMedicalDay, updateMedicalDay, deleteMedicalDay } = require('../controllers/medicalDayController');
-const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const { verifyToken, checkRole } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/validation');
 
 const router = express.Router();
@@ -19,10 +19,10 @@ const validateMedicalDayId = [
   handleValidationErrors
 ];
 
-router.get('/', authenticateToken, getMedicalDays);
-router.get('/:id', authenticateToken, validateMedicalDayId, getMedicalDay);
-router.post('/', authenticateToken, authorizeRoles('admin'), validateMedicalDay, createMedicalDay);
-router.put('/:id', authenticateToken, authorizeRoles('admin'), validateMedicalDayId, validateMedicalDay, updateMedicalDay);
-router.delete('/:id', authenticateToken, authorizeRoles('admin'), validateMedicalDayId, deleteMedicalDay);
+router.get('/', verifyToken, getMedicalDays);
+router.get('/:id', verifyToken, validateMedicalDayId, getMedicalDay);
+router.post('/', verifyToken, checkRole(['administrador']), validateMedicalDay, createMedicalDay);
+router.put('/:id', verifyToken, checkRole(['administrador']), validateMedicalDayId, validateMedicalDay, updateMedicalDay);
+router.delete('/:id', verifyToken, checkRole(['administrador']), validateMedicalDayId, deleteMedicalDay);
 
 module.exports = router;

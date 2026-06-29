@@ -8,6 +8,8 @@ const fs      = require('fs');
 const bcrypt  = require('bcrypt');
 const emailService = require('./services/emailService');
 const { sequelize } = require('./config/database');
+const { verifyToken } = require('./middlewares/auth');
+const { getDashboardStats } = require('./controllers/dashboardController');
 
 const crypto      = require('crypto');
 
@@ -54,7 +56,13 @@ async function notifyByPhone(phone, name, tipo, estado) {
 }
 
 const ADMIN_EMAIL    = 'julieth20051506@siscvi.com';
-const DASHBOARD_URL  = 'http://localhost:5173'; // puerto del dashboard
+// URL pública del dashboard (Netlify/Vercel en producción) — antes estaba
+// hardcodeada a localhost, lo que rompía el enlace de "olvidé mi contraseña"
+// apenas se desplegaba. Se define vía variable de entorno FRONTEND_URL.
+const DASHBOARD_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+// URL pública del propio backend (Render) — usada para construir URLs de
+// archivos servidos desde /uploads. Antes estaba hardcodeada a localhost:3000.
+const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
 
 // Agrega la columna reset_token la primera vez que arranca el servidor
 sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS reset_token VARCHAR(64)`)
@@ -102,10 +110,21 @@ app.use(helmet());
 // dos cabeceras Access-Control-Allow-Origin distintas para la misma
 // petición, lo que el navegador rechaza como ERR_FAILED sin importar si
 // el origen era válido).
-// Se permite EXCLUSIVAMENTE el entorno local y el de producción en Netlify.
+// La whitelist ya no es un array fijo: se construye a partir de
+// FRONTEND_URL (variable de entorno, admite varios orígenes separados por
+// coma — útil si Vercel/Netlify generan un dominio de preview distinto al
+// de producción) más los dos orígenes base que siempre deben funcionar.
+// Así, cambiar de hosting o agregar un dominio nuevo es un cambio de
+// configuración en la plataforma (Render/Vercel), no un redeploy de código.
+const FRONTEND_URLS_ENV = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(url => url.trim())
+  .filter(Boolean);
+
 const CORS_WHITELIST = [
   'http://localhost:5173',
-  'https://sisvicmisionnevado.netlify.app'
+  'https://sisvicmisionnevado.netlify.app',
+  ...FRONTEND_URLS_ENV
 ];
 
 app.use(cors({
@@ -150,18 +169,25 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// ── GET /api/dashboard/stats — Totales reales para las tarjetas del Panel
+// Principal (Usuarios, Mascotas, Censo, Colaboraciones, Consultas, etc.) ────
+app.get('/api/dashboard/stats', verifyToken, getDashboardStats);
+
 app.post('/api/Adoption-Tramite', async (req, res) => {
     const { visitor_id_card, visitor_name, visitor_phone, visitor_email, id_pet, procedure_status } = req.body;
-    
+
     try {
-        const query = `
-            INSERT INTO "Adoption-Tramite" (visitor_id_card, visitor_name, visitor_phone, visitor_email, id_pet, procedure_status)
-            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
-        `;
-        // Ejecutamos la consulta
-        const result = await pool.query(query, [visitor_id_card, visitor_name, visitor_phone, visitor_email, id_pet, procedure_status]);
-        
-        res.status(201).json({ success: true, message: 'Trámite registrado exitosamente', data: result.rows[0] });
+        // Antes usaba `pool.query` con placeholders $1..$6, pero `pool` nunca
+        // se declaró en este archivo (todo el resto del módulo usa Sequelize) —
+        // esta ruta crasheaba con un ReferenceError en cuanto alguien la llamaba.
+        const [resultado] = await sequelize.query(
+            `INSERT INTO "Adoption-Tramite" (visitor_id_card, visitor_name, visitor_phone, visitor_email, id_pet, procedure_status)
+             VALUES (:visitor_id_card, :visitor_name, :visitor_phone, :visitor_email, :id_pet, :procedure_status)
+             RETURNING *`,
+            { replacements: { visitor_id_card, visitor_name, visitor_phone, visitor_email, id_pet, procedure_status } }
+        );
+
+        res.status(201).json({ success: true, message: 'Trámite registrado exitosamente', data: resultado[0] });
     } catch (error) {
         console.error('Error al guardar el trámite:', error);
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
@@ -259,51 +285,16 @@ app.post('/api/recover-password', async (req, res) => {
   }
 });
 
-// ── POST /api/pets — Publica un animal en la cartelera pública ───────────────
-app.post('/api/pets', upload.single('foto'), async (req, res) => {
-  const { nombre, especie, raza, sexo, edad, color, energia, estado, historia } = req.body;
-  const image_url = req.file
-    ? `http://localhost:3000/uploads/${req.file.filename}`
-    : null;
-  try {
-    const descripcion = `${historia} | Sexo: ${sexo} | Color: ${color} | Comportamiento: ${energia} | Estado: ${estado}`;
-    const [resultado] = await sequelize.query(
-      `INSERT INTO "Pets" (name, species, breed, age, description, image_url, status, created_at, updated_at)
-       VALUES (:name, :species, :breed, :age, :description, :image_url, 'available', NOW(), NOW())
-       RETURNING *`,
-      {
-        replacements: {
-          name:        nombre,
-          species:     especie,
-          breed:       raza   || null,
-          age:         edad,
-          description: descripcion,
-          image_url,
-        }
-      }
-    );
-    res.status(201).json({ success: true, message: 'Animal publicado en cartelera', data: resultado[0] });
-  } catch (error) {
-    console.error('Error al publicar animal:', error);
-    res.status(500).json({ success: false, message: 'Error interno del servidor' });
-  }
-});
+// POST /api/pets fue migrado a routes/pets.js + petsController.js (createPet),
+// protegido con verifyToken/checkRole y subiendo la foto a Cloudinary vía
+// upload.single('foto') (utils/upload.js) en lugar del multer.diskStorage
+// local de aquí arriba — ese disco es efímero en Render y la imagen se
+// perdía en cada redeploy. El router montado en app.use('/api', ...) más
+// arriba intercepta esta ruta antes de llegar aquí.
 
-// ── GET /api/donations — Lista todas las donaciones ──────────────────────────
-app.get('/api/donations', async (req, res) => {
-  try {
-    const [rows] = await sequelize.query(
-      `SELECT id_donation, visitor_name, visitor_phone, amount,
-              payment_reference, payment_date, status, created_at
-       FROM "Donations"
-       ORDER BY created_at DESC`
-    );
-    res.status(200).json({ donations: rows });
-  } catch (error) {
-    console.error('Error al obtener donaciones:', error.message);
-    res.status(500).json({ message: 'Error al obtener donaciones' });
-  }
-});
+// GET /api/donations fue migrado a routes/donations.js + donationsController.js
+// (paginado, protegido con verifyToken/checkRole). El router montado en
+// app.use('/api', ...) más arriba intercepta esa ruta antes de llegar aquí.
 
 // ── PATCH /api/donations/:id — Actualiza estado y notifica al donante ────────
 app.patch('/api/donations/:id', async (req, res) => {
@@ -377,36 +368,12 @@ app.patch('/api/complaints-status/:id', async (req, res) => {
   }
 });
 
-// ── PATCH /api/pets/:id — Edita los datos de un animal en cartelera ───────────
-app.patch('/api/pets/:id', async (req, res) => {
-  const { nombre, especie, raza, edad } = req.body;
-  try {
-    await sequelize.query(
-      `UPDATE "Pets"
-       SET name = :name, species = :species, breed = :breed, age = :age, updated_at = NOW()
-       WHERE id_pet = :id`,
-      { replacements: { name: nombre, species: especie, breed: raza || null, age: edad, id: req.params.id } }
-    );
-    res.status(200).json({ message: 'Animal actualizado correctamente' });
-  } catch (error) {
-    console.error('Error al editar animal:', error.message);
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// ── DELETE /api/pets/:id — Elimina un animal de la cartelera ──────────────────
-app.delete('/api/pets/:id', async (req, res) => {
-  try {
-    await sequelize.query(
-      `DELETE FROM "Pets" WHERE id_pet = :id`,
-      { replacements: { id: req.params.id } }
-    );
-    res.status(200).json({ message: 'Animal eliminado de la cartelera' });
-  } catch (error) {
-    console.error('Error al eliminar animal:', error.message);
-    res.status(500).json({ message: error.message });
-  }
-});
+// PATCH /api/pets/:id y DELETE /api/pets/:id fueron migrados a routes/pets.js
+// + petsController.js (updatePet usa PUT, no PATCH; deletePet), ambos
+// protegidos con verifyToken/checkRole y subida a Cloudinary. El DELETE de
+// aquí abajo quedaba interceptado por el router (mismo método y path); el
+// PATCH no lo interceptaba (métodos distintos) pero ya no tenía ningún
+// llamador real: CarteleraAdopcion.jsx usa petsService.update() (PUT).
 
 // ── GET /api/sectors — Lista sectores para el select del formulario ──────────
 app.get('/api/sectors', async (req, res) => {
@@ -542,28 +509,9 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
   }
 });
 
-// ── GET /api/adoption-requests — Lista solicitudes para el dashboard ─────────
-app.get('/api/adoption-requests', async (req, res) => {
-  try {
-    const [solicitudes] = await sequelize.query(
-      `SELECT
-         a."id_Adoption",
-         a.visitor_name,
-         a.visitor_phone,
-         a.visitor_email,
-         a."Adoption_status",
-         a.created_at,
-         p.name AS pet_name
-       FROM "Adoption" a
-       LEFT JOIN "Pets" p ON p.id_pet = a.id_pet
-       ORDER BY a.created_at DESC`
-    );
-    res.status(200).json({ solicitudes });
-  } catch (error) {
-    console.error('Error al obtener solicitudes:', error.message);
-    res.status(500).json({ message: 'Error al obtener solicitudes' });
-  }
-});
+// GET /api/adoption-requests fue migrado a routes/adoption.js + adoptionController.js
+// (paginado, protegido con verifyToken/checkRole). El router montado en
+// app.use('/api', ...) más arriba intercepta esa ruta antes de llegar aquí.
 
 // ── POST /api/login — Verifica credenciales del administrador ─────────────────
 app.post('/api/login', async (req, res) => {

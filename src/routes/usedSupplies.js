@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param } = require('express-validator');
 const { getUsedSupplies, getUsedSupply, createUsedSupply, updateUsedSupply, deleteUsedSupply } = require('../controllers/usedSuppliesController');
-const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const { verifyToken, checkRole } = require('../middlewares/auth');
 const { handleValidationErrors } = require('../middlewares/validation');
 
 const router = express.Router();
@@ -18,10 +18,10 @@ const validateUsedSupplyId = [
   handleValidationErrors
 ];
 
-router.get('/', authenticateToken, getUsedSupplies);
-router.get('/:id', authenticateToken, validateUsedSupplyId, getUsedSupply);
-router.post('/', authenticateToken, authorizeRoles('admin'), validateUsedSupply, createUsedSupply);
-router.put('/:id', authenticateToken, authorizeRoles('admin'), validateUsedSupplyId, validateUsedSupply, updateUsedSupply);
-router.delete('/:id', authenticateToken, authorizeRoles('admin'), validateUsedSupplyId, deleteUsedSupply);
+router.get('/', verifyToken, getUsedSupplies);
+router.get('/:id', verifyToken, validateUsedSupplyId, getUsedSupply);
+router.post('/', verifyToken, checkRole(['administrador']), validateUsedSupply, createUsedSupply);
+router.put('/:id', verifyToken, checkRole(['administrador']), validateUsedSupplyId, validateUsedSupply, updateUsedSupply);
+router.delete('/:id', verifyToken, checkRole(['administrador']), validateUsedSupplyId, deleteUsedSupply);
 
 module.exports = router;

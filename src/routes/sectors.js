@@ -1,6 +1,6 @@
 const express = require('express');
 const { getSectors, getSector, createSector, updateSector, deleteSector } = require('../controllers/sectorsController');
-const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const { verifyToken, checkRole } = require('../middlewares/auth');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
 
@@ -25,8 +25,8 @@ const validateCreateSector = [
 // Rutas
 router.get('/', getSectors);
 router.get('/:id', getSector);
-router.post('/', authenticateToken, authorizeRoles('admin'), validateCreateSector, createSector);
-router.put('/:id', authenticateToken, authorizeRoles('admin'), validateCreateSector, updateSector);
-router.delete('/:id', authenticateToken, authorizeRoles('admin'), deleteSector);
+router.post('/', verifyToken, checkRole(['administrador']), validateCreateSector, createSector);
+router.put('/:id', verifyToken, checkRole(['administrador']), validateCreateSector, updateSector);
+router.delete('/:id', verifyToken, checkRole(['administrador']), deleteSector);
 
 module.exports = router;

@@ -3,7 +3,8 @@ const Sectors = require('./Sectors');
 const Owners = require('./Owners');
 const Roles = require('./Roles');
 const Users = require('./Users');
-const Staff_Volunteers = require('./Staff_Volunteers');
+const Staff = require('./Staff');
+const Volunteers = require('./Volunteers');
 const Medical_Day = require('./Medical_Day');
 const Animal_Census = require('./Animal_Census');
 const Complaints = require('./Complaints');
@@ -15,6 +16,7 @@ const Used_Supplies = require('./Used_Supplies');
 const Pets = require('./Pets');
 const Adoption = require('./Adoption');
 const Donations = require('./Donations');
+const Bitacora = require('./Bitacora');
 
 
 // Objeto para almacenar todos los modelos
@@ -23,7 +25,8 @@ const models = {
   Owners,
   Roles,
   Users,
-  Staff_Volunteers,
+  Staff,
+  Volunteers,
   Medical_Day,
   Animal_Census,
   Complaints,
@@ -34,7 +37,8 @@ const models = {
   Used_Supplies,
   Pets,
   Adoption,
-  Donations
+  Donations,
+  Bitacora
 };
 
 // Definir relaciones
@@ -62,13 +66,16 @@ Sectors.hasMany(Complaints, { foreignKey: 'id_sector' });
 Medical_Day.belongsTo(Sectors, { foreignKey: 'id_sector' });
 Sectors.hasMany(Medical_Day, { foreignKey: 'id_sector' });
 
-// Day_Attendance pertenece a Medical_Day, Owners, Staff_Volunteers, Animal_Census
+// Day_Attendance pertenece a Medical_Day, Owners, Staff/Volunteers, Animal_Census
 Day_Attendance.belongsTo(Medical_Day, { foreignKey: 'id_day' });
 Medical_Day.hasMany(Day_Attendance, { foreignKey: 'id_day' });
 Day_Attendance.belongsTo(Owners, { foreignKey: 'id_owner' });
 Owners.hasMany(Day_Attendance, { foreignKey: 'id_owner' });
-Day_Attendance.belongsTo(Staff_Volunteers, { foreignKey: 'id_staff' });
-Staff_Volunteers.hasMany(Day_Attendance, { foreignKey: 'id_staff' });
+// Quien atendió es Staff o Volunteers (mutuamente excluyentes, ambos nullable)
+Day_Attendance.belongsTo(Staff, { foreignKey: 'id_staff' });
+Staff.hasMany(Day_Attendance, { foreignKey: 'id_staff' });
+Day_Attendance.belongsTo(Volunteers, { foreignKey: 'id_volunteer' });
+Volunteers.hasMany(Day_Attendance, { foreignKey: 'id_volunteer' });
 Day_Attendance.belongsTo(Animal_Census, { foreignKey: 'id_animal' });
 Animal_Census.hasMany(Day_Attendance, { foreignKey: 'id_animal' });
 
@@ -93,6 +100,10 @@ Supply_Stock.hasMany(Used_Supplies, { foreignKey: 'id_supply' });
 // Definir la relación: Un animal puede tener muchas solicitudes de adopción
 Pets.hasMany(Adoption, { foreignKey: 'id_pet', as: 'applications' });
 Adoption.belongsTo(Pets, { foreignKey: 'id_pet', as: 'pet' });
+
+// Bitacora pertenece a Users (quién ejecutó la acción)
+Bitacora.belongsTo(Users, { foreignKey: 'id_user' });
+Users.hasMany(Bitacora, { foreignKey: 'id_user' });
 
 // Función para sincronizar la base de datos
 const syncDatabase = async (options = {}) => {

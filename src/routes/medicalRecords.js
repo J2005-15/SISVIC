@@ -1,5 +1,5 @@
 const express = require('express');
-const { getMedicalRecords, getMedicalRecord, createMedicalRecord, updateMedicalRecord, deleteMedicalRecord } = require('../controllers/medicalRecordsController');
+const { getMedicalRecords, getMedicalRecordsStats, getMedicalRecord, createMedicalRecord, updateMedicalRecord, deleteMedicalRecord } = require('../controllers/medicalRecordsController');
 const { verifyToken, checkRole } = require('../middlewares/auth');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
@@ -63,7 +63,9 @@ const validateCreateMedicalRecord = [
 ];
 
 // Rutas
+// IMPORTANTE: '/stats' antes de '/:id' para que Express no la confunda con un ID.
 router.get('/', verifyToken, checkRole(ROLES_LECTURA_CONSULTAS), getMedicalRecords);
+router.get('/stats', verifyToken, checkRole(ROLES_LECTURA_CONSULTAS), getMedicalRecordsStats);
 router.get('/:id', verifyToken, checkRole(ROLES_LECTURA_CONSULTAS), getMedicalRecord);
 router.post('/', verifyToken, checkRole(ROLES_ESCRITURA_CONSULTAS), validateCreateMedicalRecord, createMedicalRecord);
 router.put('/:id', verifyToken, checkRole(ROLES_ESCRITURA_CONSULTAS), validateCreateMedicalRecord, updateMedicalRecord);

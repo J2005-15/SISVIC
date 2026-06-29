@@ -32,6 +32,13 @@ const Users = sequelize.define('Users', {
     type: DataTypes.ENUM('activo', 'inactivo', 'suspendido'),
     allowNull: false
   },
+  // Token temporal de un solo uso para el flujo "olvidé mi contraseña".
+  // La columna ya existe en Neon (creada por una migración ad-hoc previa);
+  // se declara aquí para poder usarla vía Sequelize ORM (user.reset_token = ...).
+  reset_token: {
+    type: DataTypes.STRING(64),
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

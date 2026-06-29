@@ -1,18 +1,79 @@
+const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { Medical_Records, Animal_Census, Users, Medical_Day, Used_Supplies } = require('../models');
 
-// Obtener todos los registros médicos
+// Obtener registros médicos — paginado y filtrable. Query params: page
+// (def. 1), limit (def. 10), search (motivo de consulta o diagnóstico,
+// parcial case-insensitive), motivo (consultation_reason exacto, ej.
+// 'Vacunación', 'Enfermedad', 'Control', 'Emergencia' — valores fijos del
+// dropdown de FormularioConsultaMedica.jsx).
 const getMedicalRecords = async (req, res, next) => {
   try {
-    const medicalRecords = await Medical_Records.findAll({
+    const page  = Math.max(1, parseInt(req.query.page, 10)  || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const search = (req.query.search || '').trim();
+    const motivo = (req.query.motivo || '').trim();
+    const offset = (page - 1) * limit;
+
+    const whereClause = {};
+    if (search) {
+      whereClause[Op.or] = [
+        { consultation_reason: { [Op.iLike]: `%${search}%` } },
+        { diagnosis: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+    if (motivo) {
+      whereClause.consultation_reason = motivo;
+    }
+
+    const { count, rows } = await Medical_Records.findAndCountAll({
+      where: whereClause,
       include: [
         { model: Animal_Census, attributes: ['id_animal', 'animal_name'] },
         { model: Users, attributes: ['id_user', 'full_name'] },
         { model: Medical_Day, attributes: ['id_day', 'day_name', 'date_event'] }
       ],
-      order: [['id_record', 'DESC']]
+      order: [['id_record', 'DESC']],
+      limit,
+      offset,
+      distinct: true,
     });
-    res.json({ medicalRecords });
+
+    res.json({
+      data: rows,
+      metadata: {
+        totalRecords: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Estadísticas globales — totales reales de TODA la tabla (no del array
+// paginado que ve el cliente). "Pendiente" replica exactamente la regla de
+// derivarEstado() en el frontend: sin fecha de cita o fecha futura cuenta
+// como pendiente; fecha de hoy o pasada cuenta como atendido.
+const getMedicalRecordsStats = async (req, res, next) => {
+  try {
+    const [pendientes, atendidos, emergencias] = await Promise.all([
+      Medical_Records.count({
+        where: {
+          [Op.or]: [
+            { appointment_date: null },
+            { appointment_date: { [Op.gt]: sequelize.literal('CURRENT_DATE') } }
+          ]
+        }
+      }),
+      Medical_Records.count({
+        where: { appointment_date: { [Op.lte]: sequelize.literal('CURRENT_DATE') } }
+      }),
+      Medical_Records.count({ where: { consultation_reason: 'Emergencia' } }),
+    ]);
+
+    res.json({ pendientes, atendidos, emergencias });
   } catch (error) {
     next(error);
   }
@@ -150,6 +211,7 @@ const deleteMedicalRecord = async (req, res, next) => {
 
 module.exports = {
   getMedicalRecords,
+  getMedicalRecordsStats,
   getMedicalRecord,
   createMedicalRecord,
   updateMedicalRecord,
