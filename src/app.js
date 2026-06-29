@@ -116,9 +116,14 @@ app.use(helmet());
 // de producción) más los dos orígenes base que siempre deben funcionar.
 // Así, cambiar de hosting o agregar un dominio nuevo es un cambio de
 // configuración en la plataforma (Render/Vercel), no un redeploy de código.
+// Quita un '/' final si alguien lo pega por error en la variable de entorno
+// (el header Origin que manda el navegador NUNCA trae slash final, así que
+// una sola entrada con '/' de más rompía el match exacto en silencio).
+const sinSlashFinal = (url) => url.replace(/\/+$/, '');
+
 const FRONTEND_URLS_ENV = (process.env.FRONTEND_URL || '')
   .split(',')
-  .map(url => url.trim())
+  .map(url => sinSlashFinal(url.trim()))
   .filter(Boolean);
 
 const CORS_WHITELIST = [
@@ -130,8 +135,8 @@ const CORS_WHITELIST = [
 app.use(cors({
   origin: (origin, callback) => {
     // Sin header Origin (curl, Postman, llamadas servidor-a-servidor): se permite.
-    // Con header Origin: debe estar exactamente en la whitelist.
-    if (!origin || CORS_WHITELIST.includes(origin)) {
+    // Con header Origin: debe estar (normalizado) en la whitelist.
+    if (!origin || CORS_WHITELIST.includes(sinSlashFinal(origin))) {
       return callback(null, true);
     }
     return callback(new Error(`Origen no permitido por la política CORS: ${origin}`));
