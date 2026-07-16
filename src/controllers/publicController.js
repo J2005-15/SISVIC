@@ -1,17 +1,18 @@
+const { Op } = require('sequelize');
 const { Pets, Donations } = require('../models');
 const { sequelize }       = require('../config/database');
 const emailService        = require('../services/emailService');
-const { cacheGet }        = require('../utils/cache');
+const { cacheGet, cacheInvalidar } = require('../utils/cache');
 
 const ADMIN_EMAIL = 'julieth20051506@gmail.com'; // ← cambia esto a tu correo real
 
-// GET /pets - Obtener solo los animales disponibles
+// GET /pets - Retorna mascotas disponibles Y en proceso de adopción
 const getAvailablePets = async (req, res, next) => {
   try {
     const pets = await cacheGet('pets:disponibles', 300, async () => {
       const filas = await Pets.findAll({
-        where: { status: 'available' },
-        attributes: ['id_pet', 'name', 'species', 'breed', 'age', 'description', 'image_url'],
+        where: { status: { [Op.in]: ['available', 'en_proceso'] } },
+        attributes: ['id_pet', 'name', 'species', 'breed', 'age', 'description', 'image_url', 'status'],
         order: [['created_at', 'DESC']],
         limit: 100,
       });
@@ -30,6 +31,17 @@ const submitAdoptionApplication = async (req, res, next) => {
   try {
     const { visitor_name, visitor_email, visitor_phone, id_pet } = req.body;
 
+    // Verificar que la mascota existe y está disponible
+    const mascota = await Pets.findByPk(id_pet);
+    if (!mascota) {
+      return res.status(404).json({ message: 'Mascota no encontrada.' });
+    }
+    if (mascota.status !== 'available') {
+      return res.status(409).json({
+        message: 'Esta mascota ya tiene una solicitud de adopción en proceso. Por favor elige otra.'
+      });
+    }
+
     const [resultado] = await sequelize.query(
       `INSERT INTO "Adoption"
          (id_pet, visitor_name, visitor_email, visitor_phone, "Adoption_status", created_at, updated_at)
@@ -38,6 +50,15 @@ const submitAdoptionApplication = async (req, res, next) => {
        RETURNING *`,
       { replacements: { id_pet, visitor_name, visitor_email, visitor_phone } }
     );
+
+    // Marcar la mascota como en proceso para bloquear nuevas solicitudes
+    await sequelize.query(
+      `UPDATE "Pets" SET status = 'en_proceso', updated_at = NOW() WHERE id_pet = :id_pet`,
+      { replacements: { id_pet } }
+    );
+
+    // Invalidar caché para que la cartelera pública refleje el cambio de inmediato
+    cacheInvalidar('pets:disponibles', 'dashboard:stats');
 
     // Notifica al administrador (sin await para no retrasar la respuesta al usuario)
     emailService.sendAdminAlert(

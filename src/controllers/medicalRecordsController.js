@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { Medical_Records, Animal_Census, Users, Medical_Day, Used_Supplies } = require('../models');
+const { registrarBitacora } = require('../utils/bitacora');
 
 // Obtener registros médicos — paginado y filtrable. Query params: page
 // (def. 1), limit (def. 10), search (motivo de consulta o diagnóstico,
@@ -147,6 +148,14 @@ const createMedicalRecord = async (req, res, next) => {
     }
 
     await transaccion.commit();
+
+    registrarBitacora({
+      id_user: req.user.id,
+      action: 'crear',
+      table_affected: 'Medical_Records',
+      description: `Registró la consulta #${medicalRecord.id_record} (${consultation_reason}) para el animal id_animal=${id_animal}`
+    });
+
     res.status(201).json({ message: 'Registro médico creado exitosamente', medicalRecord });
   } catch (error) {
     await transaccion.rollback();
@@ -187,6 +196,13 @@ const updateMedicalRecord = async (req, res, next) => {
       appointment_date
     });
 
+    registrarBitacora({
+      id_user: req.user.id,
+      action: 'actualizar',
+      table_affected: 'Medical_Records',
+      description: `Actualizó la consulta #${id} (${consultation_reason ?? 'sin motivo'})`
+    });
+
     res.json({ message: 'Registro médico actualizado exitosamente', medicalRecord });
   } catch (error) {
     next(error);
@@ -203,6 +219,14 @@ const deleteMedicalRecord = async (req, res, next) => {
     }
 
     await medicalRecord.destroy();
+
+    registrarBitacora({
+      id_user: req.user.id,
+      action: 'eliminar',
+      table_affected: 'Medical_Records',
+      description: `Eliminó la consulta #${id} (${medicalRecord.consultation_reason ?? 'sin motivo'})`
+    });
+
     res.json({ message: 'Registro médico eliminado exitosamente' });
   } catch (error) {
     next(error);

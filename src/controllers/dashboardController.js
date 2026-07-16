@@ -72,7 +72,7 @@ const getDashboardStats = async (req, res, next) => {
           }))
         : mascotasRecientes.map(mascota => ({
             nombre: mascota.name,
-            estado: mascota.status === 'available' ? 'Disponible' : 'Adoptado',
+            estado: mascota.status === 'available' ? 'Disponible' : mascota.status === 'en_proceso' ? 'En Proceso' : 'Adoptado',
           }));
 
       return {

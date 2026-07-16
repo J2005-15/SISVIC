@@ -10,6 +10,7 @@ const emailService = require('./services/emailService');
 const { sequelize } = require('./config/database');
 const { verifyToken } = require('./middlewares/auth');
 const { getDashboardStats } = require('./controllers/dashboardController');
+const { cacheInvalidar }   = require('./utils/cache');
 
 const crypto      = require('crypto');
 
@@ -471,14 +472,14 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
       { replacements: { status: estado, id: req.params.id } }
     );
 
-    // 3. Si está aprobada, registra propietario y marca mascota
-    if (estado === 'Aprobada') {
-      const [rows] = await sequelize.query(
-        `SELECT id_pet FROM "Adoption" WHERE "id_Adoption" = :id`,
-        { replacements: { id: req.params.id } }
-      );
-      const id_pet = rows[0]?.id_pet;
+    // 3. Obtener mascota asociada y actualizar su estado según la decisión
+    const [rows] = await sequelize.query(
+      `SELECT id_pet FROM "Adoption" WHERE "id_Adoption" = :id`,
+      { replacements: { id: req.params.id } }
+    );
+    const id_pet = rows[0]?.id_pet;
 
+    if (estado === 'Aprobada') {
       if (id_pet) {
         await sequelize.query(
           `UPDATE "Pets" SET status = 'adopted', updated_at = NOW() WHERE id_pet = :id_pet`,
@@ -497,7 +498,18 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
           { replacements: { full_name, id_card, phone_number, address: address || 'No especificada', id_sector } }
         );
       }
+    } else if (estado === 'Rechazada') {
+      // Restaurar la mascota a disponible para que pueda recibir nuevas solicitudes
+      if (id_pet) {
+        await sequelize.query(
+          `UPDATE "Pets" SET status = 'available', updated_at = NOW() WHERE id_pet = :id_pet`,
+          { replacements: { id_pet } }
+        );
+      }
     }
+
+    // Invalida el caché para que la cartelera pública refleje el nuevo estado
+    cacheInvalidar('pets:disponibles', 'dashboard:stats');
 
     // 4. NOTIFICACIÓN POR EMAIL (asincrónico, sin await)
     if (visitor_email) {
