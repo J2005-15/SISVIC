@@ -1,6 +1,5 @@
 const { Op } = require('sequelize');
-const { Pets, Donations } = require('../models');
-const { sequelize }       = require('../config/database');
+const { Pets, Donations, Adoption } = require('../models');
 const emailService        = require('../services/emailService');
 const { cacheGet, cacheInvalidar } = require('../utils/cache');
 
@@ -42,20 +41,16 @@ const submitAdoptionApplication = async (req, res, next) => {
       });
     }
 
-    const [resultado] = await sequelize.query(
-      `INSERT INTO "Adoption"
-         (id_pet, visitor_name, visitor_email, visitor_phone, "Adoption_status", created_at, updated_at)
-       VALUES
-         (:id_pet, :visitor_name, :visitor_email, :visitor_phone, 'pending', NOW(), NOW())
-       RETURNING *`,
-      { replacements: { id_pet, visitor_name, visitor_email, visitor_phone } }
-    );
+    // Crear la solicitud usando ORM (timestamps manejados automáticamente)
+    const nuevaAdopcion = await Adoption.create({
+      id_pet,
+      visitor_name,
+      visitor_email,
+      visitor_phone,
+    });
 
-    // Marcar la mascota como en proceso para bloquear nuevas solicitudes
-    await sequelize.query(
-      `UPDATE "Pets" SET status = 'en_proceso', updated_at = NOW() WHERE id_pet = :id_pet`,
-      { replacements: { id_pet } }
-    );
+    // Marcar la mascota como en proceso — ORM maneja updated_at automáticamente
+    await Pets.update({ status: 'en_proceso' }, { where: { id_pet } });
 
     // Invalidar caché para que la cartelera pública refleje el cambio de inmediato
     cacheInvalidar('pets:disponibles', 'dashboard:stats');
@@ -72,7 +67,7 @@ const submitAdoptionApplication = async (req, res, next) => {
 
     res.status(201).json({
       message: 'Solicitud de adopción enviada exitosamente',
-      application: resultado[0]
+      application: nuevaAdopcion
     });
   } catch (error) {
     console.error('Error en submitAdoptionApplication:', error.message);

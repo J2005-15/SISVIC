@@ -73,6 +73,14 @@ sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS reset_token VARCHA
 sequelize.query(`ALTER TABLE "Donations" ADD COLUMN IF NOT EXISTS visitor_email VARCHAR(255)`)
   .catch(err => console.error('visitor_email column:', err.message));
 
+// Garantiza que la tabla Pets tenga columnas de auditoría — si el servidor
+// arrancó antes de que el modelo tuviera timestamps:true, las columnas no
+// existirían y Pets.create() lanzaría un error de columna no encontrada.
+sequelize.query(`ALTER TABLE "Pets" ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`)
+  .catch(err => console.error('Pets created_at column:', err.message));
+sequelize.query(`ALTER TABLE "Pets" ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`)
+  .catch(err => console.error('Pets updated_at column:', err.message));
+
 // ── Carpeta de uploads (se crea sola si no existe) ────────────────────────────
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
