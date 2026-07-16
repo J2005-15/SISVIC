@@ -169,7 +169,6 @@ const updateMedicalRecord = async (req, res, next) => {
     const { id } = req.params;
     const {
       id_animal,
-      id_vet_user,
       id_day,
       consultation_reason,
       diagnosis,
@@ -186,7 +185,6 @@ const updateMedicalRecord = async (req, res, next) => {
 
     await medicalRecord.update({
       id_animal,
-      id_vet_user,
       id_day,
       consultation_reason,
       diagnosis,

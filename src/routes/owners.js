@@ -31,40 +31,30 @@ const validateOwner = [
   handleValidationErrors
 ];
 
-// ─── RUTAS PÚBLICAS (sin autenticación) ──────────────────────────────────────
-
-// GET /api/owners
-// Descripción: Listar todos los propietarios
-// Acceso: Público (para Censo Animal y otras vistas)
-router.get('/', getOwners);
-
-// GET /api/owners/:id
-// Descripción: Obtener propietario específico por ID
-// Acceso: Público
-router.get('/:id', getOwner);
-
 // ─── RUTAS PROTEGIDAS (requieren autenticación + roles) ────────────────────────
 
+// GET /api/owners
+router.get('/', verifyToken, getOwners);
+
+// GET /api/owners/:id
+router.get('/:id', verifyToken, getOwner);
+
 // POST /api/owners
-// Descripción: Crear nuevo propietario
-// Acceso: Solo 'administrador' y 'veterinario'
-// Flujo: verifyToken → checkRole → validateOwner → createOwner
+// Acceso: 'administrador', 'veterinario' y 'operador'
 router.post(
   '/',
   verifyToken,
-  checkRole(['administrador', 'veterinario']),
+  checkRole(['administrador', 'veterinario', 'operador']),
   validateOwner,
   createOwner
 );
 
 // PUT /api/owners/:id
-// Descripción: Actualizar propietario existente
-// Acceso: Solo 'administrador' y 'veterinario'
-// Flujo: verifyToken → checkRole → validateOwner → updateOwner
+// Acceso: 'administrador', 'veterinario' y 'operador'
 router.put(
   '/:id',
   verifyToken,
-  checkRole(['administrador', 'veterinario']),
+  checkRole(['administrador', 'veterinario', 'operador']),
   validateOwner,
   updateOwner
 );

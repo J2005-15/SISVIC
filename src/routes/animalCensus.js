@@ -38,8 +38,8 @@ const validateCreateAnimalCensus = [
 ];
 
 // Rutas
-router.get('/', getAnimalCensuses);
-router.get('/:id', getAnimalCensus);
+router.get('/', verifyToken, getAnimalCensuses);
+router.get('/:id', verifyToken, getAnimalCensus);
 router.post('/', verifyToken, validateCreateAnimalCensus, createAnimalCensus);
 router.put('/:id', verifyToken, validateCreateAnimalCensus, updateAnimalCensus);
 router.delete('/:id', verifyToken, checkRole(['administrador']), deleteAnimalCensus);

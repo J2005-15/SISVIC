@@ -17,14 +17,14 @@ router.get('/:id', authenticateToken, propietariosController.getById);
 
 // POST - Crear nuevo propietario
 // Acceso: Solo administrador y veterinario
-router.post('/', authenticateToken, authorizeRoles([1, 2]), propietariosController.create);
+router.post('/', authenticateToken, authorizeRoles(['administrador', 'veterinario', 'operador']), propietariosController.create);
 
 // PUT - Actualizar propietario
-// Acceso: Solo administrador y veterinario
-router.put('/:id', authenticateToken, authorizeRoles([1, 2]), propietariosController.update);
+// Acceso: Administrador, veterinario y operador
+router.put('/:id', authenticateToken, authorizeRoles(['administrador', 'veterinario', 'operador']), propietariosController.update);
 
 // DELETE - Eliminar propietario
 // Acceso: Solo administrador
-router.delete('/:id', authenticateToken, authorizeRoles([1]), propietariosController.delete);
+router.delete('/:id', authenticateToken, authorizeRoles(['administrador']), propietariosController.delete);
 
 module.exports = router;

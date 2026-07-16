@@ -8,7 +8,7 @@ const fs      = require('fs');
 const bcrypt  = require('bcrypt');
 const emailService = require('./services/emailService');
 const { sequelize } = require('./config/database');
-const { verifyToken } = require('./middlewares/auth');
+const { verifyToken, checkRole } = require('./middlewares/auth');
 const { getDashboardStats } = require('./controllers/dashboardController');
 const { cacheInvalidar }   = require('./utils/cache');
 
@@ -187,7 +187,7 @@ app.get('/api/ping', (_req, res) => {
 // Principal (Usuarios, Mascotas, Censo, Colaboraciones, Consultas, etc.) ────
 app.get('/api/dashboard/stats', verifyToken, getDashboardStats);
 
-app.post('/api/Adoption-Tramite', async (req, res) => {
+app.post('/api/Adoption-Tramite', verifyToken, checkRole(['administrador', 'operador']), async (req, res) => {
     const { visitor_id_card, visitor_name, visitor_phone, visitor_email, id_pet, procedure_status } = req.body;
 
     try {
@@ -311,7 +311,7 @@ app.post('/api/recover-password', limitadorEmail, async (req, res) => {
 // app.use('/api', ...) más arriba intercepta esa ruta antes de llegar aquí.
 
 // ── PATCH /api/donations/:id — Actualiza estado y notifica al donante ────────
-app.patch('/api/donations/:id', async (req, res) => {
+app.patch('/api/donations/:id', verifyToken, checkRole(['administrador', 'operador']), async (req, res) => {
   const { status } = req.body;
   try {
     // 1. Obtiene datos del donante
@@ -331,7 +331,6 @@ app.patch('/api/donations/:id', async (req, res) => {
 
     // 3. NOTIFICACIÓN POR EMAIL
     if (visitor_email) {
-      console.log(`📧 Enviando notificación de donación a ${visitor_email}...`);
       emailService.sendStatusUpdateEmail(visitor_email, 'donacion', status).catch(err =>
         console.error('❌ Error enviando email:', err.message)
       );
@@ -339,7 +338,6 @@ app.patch('/api/donations/:id', async (req, res) => {
 
     // 4. NOTIFICACIÓN POR TELÉFONO
     if (visitor_phone) {
-      console.log(`📱 Enviando notificación a ${visitor_phone}...`);
       notifyByPhone(visitor_phone, visitor_name, 'donacion', status).catch(err =>
         console.error('❌ Error enviando SMS:', err.message)
       );
@@ -353,7 +351,7 @@ app.patch('/api/donations/:id', async (req, res) => {
 });
 
 // ── GET /api/complaints-list — Lista denuncias para el dashboard ──────────────
-app.get('/api/complaints-list', async (req, res) => {
+app.get('/api/complaints-list', verifyToken, checkRole(['administrador', 'operador']), async (req, res) => {
   try {
     const [rows] = await sequelize.query(
       `SELECT id_complaint, description, priority, status
@@ -368,7 +366,7 @@ app.get('/api/complaints-list', async (req, res) => {
 });
 
 // ── PATCH /api/complaints-status/:id — Actualiza el estado de una denuncia ────
-app.patch('/api/complaints-status/:id', async (req, res) => {
+app.patch('/api/complaints-status/:id', verifyToken, checkRole(['administrador', 'operador']), async (req, res) => {
   const { status } = req.body;
   try {
     await sequelize.query(
@@ -454,7 +452,7 @@ app.delete('/api/owners/:id', async (req, res) => {
 });
 
 // ── PATCH /api/adoption-approve/:id — Aprueba/rechaza adopción y notifica ──
-app.patch('/api/adoption-approve/:id', async (req, res) => {
+app.patch('/api/adoption-approve/:id', verifyToken, checkRole(['administrador', 'operador']), async (req, res) => {
   const { estado, full_name, id_card, phone_number, address } = req.body;
   try {
     // 1. Obtiene datos del solicitante
@@ -513,7 +511,6 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
 
     // 4. NOTIFICACIÓN POR EMAIL (asincrónico, sin await)
     if (visitor_email) {
-      console.log(`📧 Enviando notificación de adopción a ${visitor_email}...`);
       emailService.sendStatusUpdateEmail(visitor_email, 'adopcion', estado).catch(err =>
         console.error('❌ Error enviando email:', err.message)
       );
@@ -521,7 +518,6 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
 
     // 5. NOTIFICACIÓN POR TELÉFONO (SMS/WhatsApp)
     if (visitor_phone) {
-      console.log(`📱 Enviando notificación a ${visitor_phone}...`);
       notifyByPhone(visitor_phone, visitor_name, 'adopcion', estado).catch(err =>
         console.error('❌ Error enviando SMS:', err.message)
       );
@@ -538,77 +534,14 @@ app.patch('/api/adoption-approve/:id', async (req, res) => {
 // (paginado, protegido con verifyToken/checkRole). El router montado en
 // app.use('/api', ...) más arriba intercepta esa ruta antes de llegar aquí.
 
-// ── POST /api/login — Verifica credenciales del administrador ─────────────────
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ success: false, message: 'Email y contraseña son requeridos.' });
-  }
-  try {
-    // Paso 1: buscar el usuario por correo solamente
-    const [usuarios] = await sequelize.query(
-      `SELECT id_user, full_name, email, password FROM "Users"
-       WHERE email = :email AND status = 'activo'
-       LIMIT 1`,
-      { replacements: { email } }
-    );
-
-    if (usuarios.length === 0) {
-      return res.status(401).json({ success: false, message: 'Usuario no encontrado.' });
-    }
-
-    const usuario = usuarios[0];
-
-    // Paso 2: verificar contraseña (soporta bcrypt y texto plano para compatibilidad)
-    let passwordValida = false;
-    const hashGuardado = usuario.password ?? '';
-    if (hashGuardado.startsWith('$2b$') || hashGuardado.startsWith('$2a$')) {
-      passwordValida = await bcrypt.compare(password, hashGuardado);
-    } else {
-      passwordValida = (hashGuardado === password);
-    }
-
-    if (!passwordValida) {
-      return res.status(401).json({ success: false, message: 'Contraseña incorrecta.' });
-    }
-
-    res.status(200).json({
-      success: true,
-      user: { id_user: usuario.id_user, full_name: usuario.full_name, email: usuario.email }
-    });
-  } catch (error) {
-    console.error('Error en login:', error);
-    res.status(500).json({ success: false, message: 'Error interno del servidor' });
-  }
-});
-
-// ── TEST: Verificar estructura de tabla Donations ──
-app.get('/api/test/donations-schema', async (req, res) => {
-  try {
-    const columns = await sequelize.query(`
-      SELECT column_name, data_type, is_nullable
-      FROM information_schema.columns
-      WHERE table_name = 'Donations'
-      ORDER BY ordinal_position
-    `);
-    res.json({ columns: columns[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ── POST /api/public/donations — Registra una donación pública ────────
 app.post('/api/public/donations', async (req, res) => {
   const { visitor_name, visitor_email, visitor_phone, amount, payment_method, destination_bank, payment_reference, payment_date } = req.body;
-
-  console.log('📥 Datos recibidos:', { visitor_name, visitor_email, visitor_phone, amount, payment_method, destination_bank, payment_reference, payment_date });
 
   try {
     if (!visitor_name || !visitor_email || !visitor_phone || !amount || !payment_reference || !payment_date || !destination_bank) {
       return res.status(400).json({ success: false, message: 'Faltan datos requeridos' });
     }
-
-    console.log('✅ Validación pasada. Intentando INSERT...');
 
     const [result] = await sequelize.query(
       `INSERT INTO "Donations" (visitor_name, visitor_email, visitor_phone, amount, payment_method, destination_bank, payment_reference, payment_date, status)
@@ -628,24 +561,20 @@ app.post('/api/public/donations', async (req, res) => {
       }
     );
 
-    console.log('✅ INSERT exitoso:', result);
     const donation = result[0];
 
     if (visitor_email) {
-      console.log(`📧 Enviando confirmación de donación a ${visitor_email}...`);
       emailService.sendStatusUpdateEmail(visitor_email, 'donacion', 'registrada').catch(err =>
         console.error('Error enviando email al donante:', err.message)
       );
     }
 
     if (visitor_phone) {
-      console.log(`📱 Enviando confirmación por SMS a ${visitor_phone}...`);
       notifyByPhone(visitor_phone, visitor_name, 'donacion', 'registrada').catch(err =>
         console.error('Error enviando SMS:', err.message)
       );
     }
 
-    console.log(`🔔 Enviando alerta al admin...`);
     emailService.sendAdminAlert(ADMIN_EMAIL, 'donacion', `
       <p><strong>Nombre:</strong> ${visitor_name}</p>
       <p><strong>Email:</strong> ${visitor_email}</p>

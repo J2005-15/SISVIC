@@ -126,8 +126,8 @@ router.post('/login', limitadorLogin, validateLogin, async (req, res) => {
   }
 });
 
-// Registro (solo para administradores)
-router.post('/register', validateRegister, async (req, res) => {
+// Registro (solo para administradores autenticados)
+router.post('/register', authenticateToken, authorizeRoles([1]), validateRegister, async (req, res) => {
   try {
     const { full_name, email, password, id_role } = req.body;
 

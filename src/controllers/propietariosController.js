@@ -1,4 +1,4 @@
-const { Owners, Sectors } = require('../models');
+const { Owners, Sectors, Animal_Census } = require('../models');
 
 // GET - Listar todos los propietarios
 exports.getAll = async (req, res) => {
@@ -7,7 +7,7 @@ exports.getAll = async (req, res) => {
       include: [
         {
           model: Sectors,
-          attributes: ['id_sector', 'sector_name']
+          attributes: ['id_sector', 'community_name']
         }
       ],
       attributes: ['id_owner', 'full_name', 'id_card', 'phone_number', 'address', 'id_sector']
@@ -37,7 +37,7 @@ exports.getById = async (req, res) => {
       include: [
         {
           model: Sectors,
-          attributes: ['id_sector', 'sector_name']
+          attributes: ['id_sector', 'community_name']
         }
       ]
     });
@@ -201,7 +201,7 @@ exports.delete = async (req, res) => {
     }
 
     // Verificar si el propietario tiene animales asociados
-    const animalesAsociados = await propietario.countAnimals();
+    const animalesAsociados = await Animal_Census.count({ where: { id_owner: id } });
     if (animalesAsociados > 0) {
       return res.status(400).json({
         success: false,
