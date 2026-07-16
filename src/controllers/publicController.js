@@ -1,16 +1,24 @@
 const { Pets, Donations } = require('../models');
 const { sequelize }       = require('../config/database');
 const emailService        = require('../services/emailService');
+const { cacheGet }        = require('../utils/cache');
 
 const ADMIN_EMAIL = 'julieth20051506@gmail.com'; // ← cambia esto a tu correo real
 
 // GET /pets - Obtener solo los animales disponibles
 const getAvailablePets = async (req, res, next) => {
   try {
-    const pets = await Pets.findAll({
-      where: { status: 'available' },
-      order: [['created_at', 'DESC']]
+    const pets = await cacheGet('pets:disponibles', 300, async () => {
+      const filas = await Pets.findAll({
+        where: { status: 'available' },
+        attributes: ['id_pet', 'name', 'species', 'breed', 'age', 'description', 'image_url'],
+        order: [['created_at', 'DESC']],
+        limit: 100,
+      });
+      return filas.map(p => p.get({ plain: true }));
     });
+    // Cache-Control complementario: el navegador y CDN cachean otros 5 min.
+    res.set('Cache-Control', 'public, max-age=300');
     res.json({ pets });
   } catch (error) {
     next(error);

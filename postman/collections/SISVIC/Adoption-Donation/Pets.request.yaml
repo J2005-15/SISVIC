@@ -1,4 +1,7 @@
 $kind: http-request
-url: ""
+name: Pets
+url: GET http://localhost:3000/api/public/pets
 method: GET
+auth:
+  type: noauth
 order: 1779680482108

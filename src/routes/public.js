@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
+const { limitadorPublico } = require('../middlewares/rateLimiter');
 const { getAvailablePets, submitAdoptionApplication, submitDonation } = require('../controllers/publicController');
 
 const router = express.Router();
@@ -28,9 +29,9 @@ const validateDonation = [
 router.get('/pets', getAvailablePets);
 
 // POST /api/public/adoption - Recibir solicitud de adopción
-router.post('/adoption', validateAdoption, submitAdoptionApplication);
+router.post('/adoption', limitadorPublico, validateAdoption, submitAdoptionApplication);
 
 // POST /api/public/donations - Recibir registro de donación
-router.post('/donations', validateDonation, submitDonation);
+router.post('/donations', limitadorPublico, validateDonation, submitDonation);
 
 module.exports = router;

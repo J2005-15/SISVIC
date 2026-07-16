@@ -1,4 +1,20 @@
 $kind: http-request
-url: ""
-method: GET
+name: Adoption
+url: http://localhost:3000/api/public/adoption
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"id_pet\": 1,\r
+
+    \  \"visitor_name\": \"Carlos Perez\",\r
+
+    \  \"visitor_email\": \"carlos.perez@email.com\",\r
+
+    \  \"visitor_phone\": \"0414-1234567\",\r
+
+    \  \"visitor_address\": \"Barrio Obrero, San Cristóbal, Táchira\"\r
+
+    }"
 order: 4427886122314529

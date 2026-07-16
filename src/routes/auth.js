@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validation');
 const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const { limitadorLogin, limitadorEmail } = require('../middlewares/rateLimiter');
 const { Users, Roles } = require('../models');
 const emailService = require('../services/emailService');
 const { env } = require('../config/env');
@@ -60,7 +61,7 @@ const validateRecoverPassword = [
 ];
 
 // Login
-router.post('/login', validateLogin, async (req, res) => {
+router.post('/login', limitadorLogin, validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -170,7 +171,7 @@ router.post('/register', validateRegister, async (req, res) => {
 });
 
 // Recuperar contraseña
-router.post('/recover-password', validateRecoverPassword, async (req, res) => {
+router.post('/recover-password', limitadorEmail, validateRecoverPassword, async (req, res) => {
   try {
     const { email } = req.body;
 

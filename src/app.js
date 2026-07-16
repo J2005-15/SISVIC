@@ -91,9 +91,15 @@ const swaggerSpec = require('./config/swagger');
 
 // Importar middlewares
 const errorHandler = require('./middlewares/errorHandler');
+const { limitadorGeneral, limitadorEmail } = require('./middlewares/rateLimiter');
 
 // Crear instancia de Express
 const app = express();
+
+// Confía en el proxy de Render/Nginx para leer la IP real del cliente desde
+// el header X-Forwarded-For — necesario para que el rate limiter aplique
+// correctamente por IP en lugar de contar todas las peticiones como una sola.
+app.set('trust proxy', 1);
 
 // La autenticación y sincronización de la base de datos ahora se controlan
 // exclusivamente desde server.js (ciclo de reintentos), para evitar llamadas
@@ -119,6 +125,7 @@ const sinSlashFinal = (url) => url.replace(/\/+$/, '');
 const CORS_WHITELIST = [
   'http://localhost:5173',
   'https://paneladministrativosisvic.netlify.app',
+  'https://sisvicmisionnevado.netlify.app',
 ].map(sinSlashFinal);
 
 // Este bloque debe ir ANTES que cualquier otra definición de rutas o
@@ -136,6 +143,10 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('combined'));
+
+// Límite general — 200 peticiones por IP cada 15 minutos.
+// Va DESPUÉS de CORS para que las preflight (OPTIONS) no se cuenten.
+app.use(limitadorGeneral);
 
 // Middlewares para parsing
 app.use(express.json({ limit: '10mb' }));
@@ -155,7 +166,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Rutas
 app.use('/api', require('./routes/index'));
 
-// Ruta de salud
+// Ruta de salud — verifica DB (para monitoreo completo)
 app.get('/health', async (req, res) => {
   try {
     await sequelize.authenticate();
@@ -163,6 +174,12 @@ app.get('/health', async (req, res) => {
   } catch (error) {
     res.status(500).json({ status: 'ERROR', message: 'Error en la base de datos' });
   }
+});
+
+// Ping ultraliviano — sin acceso a DB. Úsalo en UptimeRobot (cada 5 min)
+// para mantener el servidor activo en Render free tier y evitar cold starts.
+app.get('/api/ping', (_req, res) => {
+  res.status(200).json({ ok: true });
 });
 
 // ── GET /api/dashboard/stats — Totales reales para las tarjetas del Panel
@@ -191,7 +208,7 @@ app.post('/api/Adoption-Tramite', async (req, res) => {
 });
 
 // ── POST /api/forgot-password — Genera token y envía enlace de recuperación ──
-app.post('/api/forgot-password', async (req, res) => {
+app.post('/api/forgot-password', limitadorEmail, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ success: false, message: 'El email es requerido.' });
   try {
@@ -218,7 +235,7 @@ app.post('/api/forgot-password', async (req, res) => {
 });
 
 // ── POST /api/reset-password — Valida el token y actualiza la contraseña ─────
-app.post('/api/reset-password', async (req, res) => {
+app.post('/api/reset-password', limitadorEmail, async (req, res) => {
   const { token, newPassword } = req.body;
   if (!token || !newPassword) {
     return res.status(400).json({ success: false, message: 'Token y contraseña son requeridos.' });
@@ -245,7 +262,7 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 // ── POST /api/recover-password — Genera clave temporal, la cifra y la envía ──
-app.post('/api/recover-password', async (req, res) => {
+app.post('/api/recover-password', limitadorEmail, async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'El email es requerido.' });

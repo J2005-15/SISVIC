@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Pets } = require('../models');
 const { registrarBitacora } = require('../utils/bitacora');
+const { cacheInvalidar } = require('../utils/cache');
 
 // Endpoint ADMINISTRATIVO (protegido) para el panel — independiente de
 // GET /api/public/pets, que es consumido por el sitio público de adopciones
@@ -78,6 +79,9 @@ const createPet = async (req, res, next) => {
       description: `Publicó en la cartelera al animal "${nombre}" (${especie})`
     });
 
+    // Invalida el caché público para que la nueva mascota aparezca de inmediato
+    cacheInvalidar('pets:disponibles', 'dashboard:stats');
+
     res.status(201).json({ message: 'Mascota publicada en cartelera', pet });
   } catch (error) {
     next(error);
@@ -112,6 +116,8 @@ const updatePet = async (req, res, next) => {
       description: `Actualizó los datos de la mascota #${id} (${pet.name})`
     });
 
+    cacheInvalidar('pets:disponibles', 'dashboard:stats');
+
     res.json({ message: 'Mascota actualizada exitosamente', pet });
   } catch (error) {
     next(error);
@@ -135,6 +141,8 @@ const deletePet = async (req, res, next) => {
       table_affected: 'Pets',
       description: `Eliminó la mascota #${id} (${nombreEliminado}) de la cartelera`
     });
+
+    cacheInvalidar('pets:disponibles', 'dashboard:stats');
 
     res.json({ message: 'Mascota eliminada exitosamente' });
   } catch (error) {
