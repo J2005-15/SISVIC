@@ -31,7 +31,8 @@ const errorHandler = (err, req, res, next) => {
 
   // Sequelize unique constraint error
   if (err.name === 'SequelizeUniqueConstraintError') {
-    const message = 'Valor duplicado';
+    const campos = err.errors?.map(e => e.path).filter(Boolean).join(', ');
+    const message = campos ? `Ya existe un registro con ese valor en: ${campos}` : 'Valor duplicado';
     error = { message, statusCode: 400 };
   }
 
